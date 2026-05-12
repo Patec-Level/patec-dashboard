@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATEC — Mapa L10 / L12</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --az:#1A3A6B;--azm:#3266AD;--azc:#E6F1FB;
+  --vd:#1D9E75;--vdc:#EAF3DE;
+  --am:#BA7517;--amc:#FAEEDA;
+  --vm:#E24B4A;--vmc:#FCEBEB;
+  --bg:#F4F6FA;--brd:#E0E0E0;--cin:#F7F7F7;
+  --tx:#1A1A1A;--tx2:#666;--sw:220px;
+}
+body{font-family:Arial,sans-serif;font-size:14px;color:var(--tx);background:var(--bg);display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sw);background:var(--az);min-height:100vh;position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sb-logo{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.12)}
+.sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo p{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-sec{padding:.75rem 1rem .2rem;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase}
+.sb-it{display:flex;align-items:center;gap:8px;padding:.6rem 1rem;cursor:pointer;font-size:12px;color:rgba(255,255,255,.65);border-left:3px solid transparent;transition:all .15s;user-select:none}
+.sb-it:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-it.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--vd)}
+.sb-badge{margin-left:auto;font-size:9px;background:rgba(186,117,23,.35);color:#FAC775;padding:1px 6px;border-radius:8px}
+
+/* ── MAIN ── */
+#mn{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--brd);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:1rem;flex-wrap:wrap}
+.topbar-l h2{font-size:15px;font-weight:700;color:var(--az)}
+.topbar-l p{font-size:11px;color:var(--tx2);margin-top:1px}
+.top-dt{font-size:11px;color:var(--tx2);background:var(--cin);padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.ct{padding:1.5rem;flex:1}
+
+/* ── PÁGINAS ── */
+.page{display:none}.page.active{display:block}
+
+/* ── SUBTABS ── */
+.stabs{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap}
+.stab{padding:6px 16px;font-size:12px;border:1px solid var(--brd);border-radius:20px;background:#fff;cursor:pointer;color:var(--tx2);transition:all .15s;font-weight:500}
+.stab.active{background:var(--azm);border-color:var(--azm);color:#fff;font-weight:600}
+
+/* ── KPI ── */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:1.25rem}
+.kc{background:#fff;border-radius:10px;padding:1rem 1.1rem;border:1px solid var(--brd);border-top:3px solid var(--azm);transition:box-shadow .15s;position:relative;overflow:hidden}
+.kc:hover{box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.kc.ok{border-top-color:var(--vd)}.kc.warn{border-top-color:var(--am)}.kc.bad{border-top-color:var(--vm)}
+.kc.big{border-top-width:4px}
+.kc-l{font-size:10px;color:var(--tx2);margin-bottom:5px;line-height:1.4}
+.kc-v{font-size:22px;font-weight:700;color:var(--az);line-height:1}
+.kc-v.xl{font-size:32px}
+.kc.ok .kc-v{color:var(--vd)}.kc.warn .kc-v{color:var(--am)}.kc.bad .kc-v{color:var(--vm)}
+.kc-s{font-size:10px;color:var(--tx2);margin-top:4px}
+.kc-trend{font-size:11px;font-weight:600;margin-top:3px}
+.t-up{color:var(--vm)}.t-dn{color:var(--vd)}.t-eq{color:var(--tx2)}
+
+/* ── CARDS ── */
+.cd{background:#fff;border-radius:10px;padding:1.25rem;border:1px solid var(--brd);margin-bottom:1rem}
+.cd-t{font-size:13px;font-weight:700;color:var(--az);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem}
+
+/* ── ALERTA ── */
+.al{border-radius:7px;padding:.7rem 1rem;margin-bottom:1rem;font-size:12px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.al-v{background:var(--vdc);color:#3B6D11;border-left:3px solid var(--vd)}
+.al-a{background:var(--amc);color:#854F0B;border-left:3px solid var(--am)}
+.al-b{background:var(--azc);color:#0C447C;border-left:3px solid var(--azm)}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto;border-radius:8px;border:1px solid var(--brd);max-height:400px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{position:sticky;top:0;background:#F0F4FA;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--tx2);border-bottom:1px solid var(--brd);white-space:nowrap;z-index:1}
+td{padding:7px 10px;border-bottom:1px solid #F5F5F5;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFF}
+tfoot td{background:#F0F4FA;font-weight:700;position:sticky;bottom:0;border-top:1px solid var(--brd)}
+
+/* ── PILL ── */
+.pl{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.pl-ok{background:var(--vdc);color:#3B6D11}
+.pl-w{background:var(--amc);color:#854F0B}
+.pl-b{background:var(--vmc);color:#A32D2D}
+.pl-g{background:var(--cin);color:var(--tx2)}
+.pl-az{background:var(--azc);color:#0C447C}
+
+/* ── LINHA CARD (visual principal) ── */
+.linha-card{background:#fff;border-radius:10px;border:1px solid var(--brd);padding:1.1rem 1.25rem;display:flex;align-items:center;gap:12px;transition:box-shadow .15s;margin-bottom:8px}
+.linha-card:hover{box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.lnum{font-size:11px;font-weight:700;color:var(--azm);background:var(--azc);padding:3px 8px;border-radius:5px;flex-shrink:0;min-width:34px;text-align:center}
+.linha-info{flex:1;min-width:0}
+.linha-nome{font-size:12px;font-weight:600;color:var(--tx);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linha-fila{font-size:10px;color:var(--tx2)}
+.linha-bar{height:6px;background:#EEE;border-radius:3px;margin-top:5px;overflow:hidden}
+.linha-fill{height:100%;border-radius:3px;transition:width .6s}
+.linha-val{font-size:20px;font-weight:700;flex-shrink:0;min-width:60px;text-align:right}
+.linha-var{font-size:10px;font-weight:600;flex-shrink:0;text-align:right;width:60px}
+.lv-up{color:var(--vm)}.lv-dn{color:var(--vd)}.lv-eq{color:var(--tx2)}
+
+/* ── DESTAQUE L10/L12 ── */
+.destaque-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem}
+.destaque{border-radius:12px;padding:1.5rem;color:#fff;position:relative;overflow:hidden}
+.destaque-az{background:linear-gradient(135deg,var(--az) 0%,#2A5FA0 100%)}
+.destaque-vd{background:linear-gradient(135deg,var(--vd) 0%,#0F6E56 100%)}
+.destaque::after{content:'';position:absolute;right:-20px;bottom:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.06)}
+.destaque h3{font-size:11px;opacity:.7;margin-bottom:.5rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.destaque-val{font-size:40px;font-weight:700;line-height:1}
+.destaque-sub{font-size:11px;opacity:.65;margin-top:5px}
+.destaque-var{font-size:12px;font-weight:600;margin-top:8px;padding:3px 10px;background:rgba(255,255,255,.15);border-radius:20px;display:inline-block}
+
+/* ── VARIAÇÃO CARDS (dia a dia) ── */
+.var-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:1.25rem}
+.var-card{background:#fff;border-radius:8px;padding:.875rem;border:1px solid var(--brd);text-align:center}
+.var-card-l{font-size:10px;color:var(--tx2);margin-bottom:4px}
+.var-card-v{font-size:20px;font-weight:700;color:var(--az)}
+.var-card-d{font-size:11px;font-weight:600;margin-top:3px}
+.vc-up{border-top:2px solid var(--vm)}.vc-dn{border-top:2px solid var(--vd)}.vc-eq{border-top:2px solid var(--tx2)}
+
+/* ── INPUT LANÇAMENTO ── */
+.lanc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:1.25rem}
+.lanc-item{display:flex;flex-direction:column;gap:4px}
+.lanc-label{font-size:11px;color:var(--tx2);font-weight:500}
+.lanc-input{padding:8px 12px;border:1.5px solid var(--brd);border-radius:7px;font-size:15px;font-weight:700;color:var(--vd);background:rgba(29,158,117,.06);text-align:right;width:100%}
+.lanc-input:focus{outline:none;border-color:var(--vd);box-shadow:0 0 0 2px rgba(29,158,117,.15)}
+.lanc-lnum{font-size:9px;font-weight:700;color:var(--azm);background:var(--azc);padding:1px 6px;border-radius:3px;margin-bottom:2px;display:inline-block}
+.lanc-total{background:var(--azc);border-radius:8px;padding:.875rem 1.25rem;display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem}
+.lanc-total label{font-size:12px;font-weight:700;color:var(--az)}
+.lanc-total-val{font-size:22px;font-weight:700;color:var(--azm)}
+
+/* ── BOTÕES ── */
+.btn{padding:8px 18px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-p{background:var(--azm);color:#fff}.btn-p:hover{background:var(--az)}
+.btn-g{background:var(--vd);color:#fff}.btn-g:hover{background:#0F6E56}
+.btn-s{background:#fff;color:var(--tx);border:1px solid var(--brd)}.btn-s:hover{background:var(--cin)}
+
+/* ── HAMBURGUER ── */
+#hbg{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--az);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:16px;cursor:pointer}
+@media(max-width:820px){
+  #hbg{display:block}
+  #sb{transform:translateX(-100%);transition:.25s}
+  #sb.mob-open{transform:translateX(0)}
+  #mn{margin-left:0}
+  .destaque-grid,.g2,.g3{grid-template-columns:1fr}
+  .var-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<button id="hbg" onclick="document.getElementById('sb').classList.toggle('mob-open')">☰</button>
+
+<!-- SIDEBAR -->
+<nav id="sb">
+  <div class="sb-logo">
+    <h1>PATEC</h1>
+    <p>Gestão de Compras</p>
+  </div>
+  <div class="sb-sec">Mapa</div>
+  <div class="sb-it active" onclick="go('posicao',this)">📊 Posição Atual</div>
+  <div class="sb-it" onclick="go('lancamento',this)">✏️ Lançamento</div>
+  <div class="sb-it" onclick="go('historico',this)">📅 Histórico do Ciclo</div>
+  <div class="sb-it" onclick="go('variacao',this)">↕ Variação Dia a Dia</div>
+  <div class="sb-it" onclick="go('detalhe',this)">🔍 Detalhe por Linha</div>
+  <div class="sb-sec">Sistema</div>
+  <div class="sb-it" style="opacity:.5;cursor:default">◈ Visão Geral <span class="sb-badge">módulo sep.</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">👥 Produção <span class="sb-badge">módulo sep.</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">⬆ Upload MAPA <span class="sb-badge">breve</span></div>
+</nav>
+
+<!-- MAIN -->
+<main id="mn">
+  <div class="topbar">
+    <div class="topbar-l">
+      <h2 id="ttl">Posição Atual — Mapa PATEC</h2>
+      <p>Ciclo Maio 2026 · Level Board atualizado em <strong>14/05/2026</strong> · 9 dias registrados na aba Dinâmica</p>
+    </div>
+    <div class="top-dt" id="tdt"></div>
+  </div>
+
+  <div class="ct">
+
+    <!-- ════════════════ POSIÇÃO ATUAL ════════════════ -->
+    <div id="p-posicao" class="page active">
+
+      <!-- L10 / L12 destaque -->
+      <div class="destaque-grid">
+        <div class="destaque destaque-az">
+          <h3>L10 — Soma total (Level Board)</h3>
+          <div class="destaque-val">4.516</div>
+          <div class="destaque-sub">L3 + L4 + L5 + L6 + L7 + L8</div>
+          <div class="destaque-var">▲ inclui Abrir PATEC (L7+L8)</div>
+        </div>
+        <div class="destaque destaque-vd">
+          <h3>L12 — Total somente PATEC</h3>
+          <div class="destaque-val">2.682</div>
+          <div class="destaque-sub">L3 + L4 + L5 + L6</div>
+          <div class="destaque-var">KPI principal do ciclo</div>
+        </div>
+      </div>
+
+      <!-- KPIs por linha -->
+      <div class="kgrid">
+        <div class="kc big"><div class="kc-l">L3 — Analisar PATEC Fin.</div><div class="kc-v xl">1.019</div><div class="kc-s">PATEC (col BN)</div><div class="kc-trend t-dn">▼ −135 vs pico (dia 1)</div></div>
+        <div class="kc big"><div class="kc-l">L4 — Aguardar PATEC ser Fin.</div><div class="kc-v xl">1.215</div><div class="kc-s">Oport. em Andamento</div><div class="kc-trend t-up">▲ +141 vs início (dia 1)</div></div>
+        <div class="kc ok"><div class="kc-l">L5 — PATEC s/ fornecedores</div><div class="kc-v">43</div><div class="kc-s">Emitir Pedido PATEC</div><div class="kc-trend t-up">▲ +3 vs dia 1</div></div>
+        <div class="kc ok"><div class="kc-l">L6 — PATEC Cancelado</div><div class="kc-v">405</div><div class="kc-s">Análise de Oportunidade</div><div class="kc-trend t-eq">— estável</div></div>
+        <div class="kc warn"><div class="kc-l">L7 — Abrir PATEC Idêntico</div><div class="kc-v">1.694</div><div class="kc-s">Fila de publicação</div><div class="kc-trend t-up">▲ crescendo no ciclo</div></div>
+        <div class="kc"><div class="kc-l">L8 — Abrir PATEC Grupo Merc.</div><div class="kc-v" style="color:var(--az)">140</div><div class="kc-s">Item em Parada</div><div class="kc-trend t-dn">▼ −14 vs pico</div></div>
+      </div>
+
+      <div class="al al-b">ℹ Valores do Level Board (col BN = Status_Desc) · Chave de cruzamento: RC (col B) + Item (col C) + Nº Op (col AE) + Item Op (col AF) · Fonte: itens.csv filtrado por ITEM_NA_CARTEIRA_LEVEL = SIM</div>
+
+      <!-- Linhas visuais -->
+      <div class="cd">
+        <div class="cd-t">📋 Composição do L12 — PATEC (L3+L4+L5+L6)</div>
+        <div id="linhas-l12"></div>
+        <div style="margin-top:1rem;padding:1rem;background:var(--azc);border-radius:8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700;color:var(--az)">Total L12 (somente PATEC)</span>
+          <span style="font-size:28px;font-weight:700;color:var(--azm)">2.682</span>
+        </div>
+      </div>
+
+      <div class="cd">
+        <div class="cd-t">📋 Abrir PATEC — L7 + L8 (fora do L12, incluso no L10)</div>
+        <div id="linhas-l78"></div>
+        <div style="margin-top:1rem;padding:1rem;background:var(--cin);border-radius:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--brd)">
+          <span style="font-size:13px;font-weight:700;color:var(--az)">Total L7+L8</span>
+          <span style="font-size:28px;font-weight:700;color:var(--tx2)">1.834</span>
+        </div>
+      </div>
+
+      <!-- Gráfico comparativo das linhas -->
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t">Distribuição L12 por linha</div>
+          <canvas id="ch-pizza-l12" height="200"></canvas>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Distribuição L10 por linha</div>
+          <canvas id="ch-pizza-l10" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ LANÇAMENTO ════════════════ -->
+    <div id="p-lancamento" class="page">
+      <div class="al al-v">✓ Preencha os valores diretamente da aba Dinâmica do MAPA.xlsb. L10 e L12 são calculados automaticamente.</div>
+
+      <div class="cd">
+        <div class="cd-t">✏️ Lançar valores do MAPA — aba Dinâmica</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font-size:11px;color:var(--tx2);font-weight:500">Data de referência</span>
+            <input type="date" id="lanc-data" style="padding:8px 12px;border:1px solid var(--brd);border-radius:7px;font-size:13px;background:#fff">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font-size:11px;color:var(--tx2);font-weight:500">Observação (opcional)</span>
+            <input type="text" id="lanc-obs" placeholder="ex: após reunião de alinhamento" style="padding:8px 12px;border:1px solid var(--brd);border-radius:7px;font-size:13px;background:#fff">
+          </div>
+        </div>
+
+        <div class="lanc-grid">
+          <div class="lanc-item">
+            <span class="lanc-lnum">L3</span>
+            <span class="lanc-label">Analisar PATEC Finalizado</span>
+            <input type="number" class="lanc-input" id="lv3" value="1019" min="0" oninput="recalcL()">
+          </div>
+          <div class="lanc-item">
+            <span class="lanc-lnum">L4</span>
+            <span class="lanc-label">Aguardar PATEC ser Finalizado</span>
+            <input type="number" class="lanc-input" id="lv4" value="1215" min="0" oninput="recalcL()">
+          </div>
+          <div class="lanc-item">
+            <span class="lanc-lnum">L5</span>
+            <span class="lanc-label">PATEC Fin. sem fornec. aprovados</span>
+            <input type="number" class="lanc-input" id="lv5" value="43" min="0" oninput="recalcL()">
+          </div>
+          <div class="lanc-item">
+            <span class="lanc-lnum">L6</span>
+            <span class="lanc-label">Analisar PATEC Cancelado</span>
+            <input type="number" class="lanc-input" id="lv6" value="405" min="0" oninput="recalcL()">
+          </div>
+          <div class="lanc-item">
+            <span class="lanc-lnum">L7</span>
+            <span class="lanc-label">Abrir PATEC Idêntico Não</span>
+            <input type="number" class="lanc-input" id="lv7" value="1694" min="0" oninput="recalcL()" style="color:var(--am)">
+          </div>
+          <div class="lanc-item">
+            <span class="lanc-lnum">L8</span>
+            <span class="lanc-label">Abrir PATEC Grupo Merc. Obrig.</span>
+            <input type="number" class="lanc-input" id="lv8" value="140" min="0" oninput="recalcL()" style="color:var(--am)">
+          </div>
+        </div>
+
+        <!-- Totais calculados -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem">
+          <div class="lanc-total" style="background:var(--azc)">
+            <div>
+              <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">L10 — Soma total (L3+L4+L5+L6+L7+L8)</div>
+              <div class="lanc-total-val" id="l10-calc">4.516</div>
+            </div>
+            <span style="font-size:11px;color:var(--azm);background:rgba(50,102,173,.1);padding:3px 8px;border-radius:5px">auto</span>
+          </div>
+          <div class="lanc-total" style="background:var(--vdc)">
+            <div>
+              <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">L12 — Somente PATEC (L3+L4+L5+L6)</div>
+              <div class="lanc-total-val" id="l12-calc" style="color:var(--vd)">2.682</div>
+            </div>
+            <span style="font-size:11px;color:var(--vd);background:rgba(29,158,117,.1);padding:3px 8px;border-radius:5px">auto</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-g" onclick="salvarLancamento()">✓ Salvar lançamento</button>
+          <button class="btn btn-s" onclick="exportLancamento()">💾 Exportar Excel</button>
+          <span id="lanc-msg" style="font-size:12px;color:var(--vd);font-weight:600;display:none">✓ Lançamento salvo!</span>
+        </div>
+      </div>
+
+      <!-- Histórico de lançamentos desta sessão -->
+      <div class="cd" id="lanc-hist-card" style="display:none">
+        <div class="cd-t">📋 Lançamentos desta sessão</div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Data</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L10</th><th>L12</th><th>Obs.</th></tr></thead>
+            <tbody id="lanc-tb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ HISTÓRICO ════════════════ -->
+    <div id="p-historico" class="page">
+      <div class="kgrid">
+        <div class="kc"><div class="kc-l">Dias registrados</div><div class="kc-v" style="color:var(--az)">9</div><div class="kc-s">aba Dinâmica MAPA</div></div>
+        <div class="kc big"><div class="kc-l">L12 — máximo</div><div class="kc-v ok">1.040</div><div class="kc-s">dia 8 (12/mai)</div></div>
+        <div class="kc warn"><div class="kc-l">L12 — mínimo</div><div class="kc-v">901</div><div class="kc-s">dia 6 (08/mai)</div></div>
+        <div class="kc"><div class="kc-l">L12 — média</div><div class="kc-v" style="color:var(--az)">958</div><div class="kc-s">dos 9 dias</div></div>
+        <div class="kc bad"><div class="kc-l">Maior variação (queda)</div><div class="kc-v">−81</div><div class="kc-s">dia 9 vs dia 8</div></div>
+        <div class="kc ok"><div class="kc-l">Maior variação (alta)</div><div class="kc-v">+71</div><div class="kc-s">dia 7 vs dia 6</div></div>
+      </div>
+
+      <!-- Gráfico histórico L10/L12/L3/L4 -->
+      <div class="cd">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+          <div class="cd-t" style="margin:0">📈 Histórico — L10 / L12 / L3 / L4 (9 dias)</div>
+          <div class="stabs" style="margin:0">
+            <button class="stab active" onclick="setHistChart('todas',this)">Todas as linhas</button>
+            <button class="stab" onclick="setHistChart('l12',this)">Somente L12</button>
+            <button class="stab" onclick="setHistChart('l34',this)">L3 + L4</button>
+            <button class="stab" onclick="setHistChart('l78',this)">L7 + L8</button>
+          </div>
+        </div>
+        <canvas id="ch-hist" height="160"></canvas>
+      </div>
+
+      <!-- Gráficos das 6 linhas individualmente -->
+      <div class="g3">
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--azm)">L3 — Analisar PATEC Fin.</div>
+          <canvas id="ch-l3" height="100"></canvas>
+        </div>
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--azm)">L4 — Aguardar PATEC</div>
+          <canvas id="ch-l4" height="100"></canvas>
+        </div>
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--vd)">L5 — PATEC s/ fornec.</div>
+          <canvas id="ch-l5" height="100"></canvas>
+        </div>
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--vd)">L6 — PATEC Cancelado</div>
+          <canvas id="ch-l6" height="100"></canvas>
+        </div>
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--am)">L7 — Abrir PATEC Idêntico</div>
+          <canvas id="ch-l7" height="100"></canvas>
+        </div>
+        <div class="cd" style="padding:1rem">
+          <div class="cd-t" style="font-size:11px;color:var(--am)">L8 — Abrir PATEC Grupo Merc.</div>
+          <canvas id="ch-l8" height="100"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabela completa -->
+      <div class="cd">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:8px">
+          <div class="cd-t" style="margin:0">Tabela histórico — 9 dias · aba Dinâmica</div>
+          <button class="btn btn-s" onclick="exportHistorico()">💾 Exportar Excel</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Dia</th>
+                <th style="color:var(--azm)">L3</th>
+                <th style="color:var(--azm)">L4</th>
+                <th style="color:var(--vd)">L5</th>
+                <th style="color:var(--vd)">L6</th>
+                <th style="color:var(--am)">L7</th>
+                <th style="color:var(--am)">L8</th>
+                <th>L10</th>
+                <th style="font-size:11px">L12</th>
+                <th>Var. L12</th>
+                <th>% vs max</th>
+              </tr>
+            </thead>
+            <tbody id="tb-hist"></tbody>
+            <tfoot id="tf-hist"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ VARIAÇÃO DIA A DIA ════════════════ -->
+    <div id="p-variacao" class="page">
+      <div class="al al-a">⚠ Última variação registrada: L12 caiu <strong>81 itens</strong> (dia 9 vs dia 8) · L3 recuou 95 itens · L4 cresceu 12 itens</div>
+
+      <!-- Cards de variação (posição atual vs dia anterior) -->
+      <div class="cd">
+        <div class="cd-t">↕ Variação — dia 9 vs dia 8 (última comparação disponível)</div>
+        <div class="var-grid" id="var-cards"></div>
+      </div>
+
+      <!-- Gráfico variação L12 dia a dia -->
+      <div class="cd">
+        <div class="cd-t">📊 Variação diária do L12 (barras)</div>
+        <canvas id="ch-var-l12" height="140"></canvas>
+      </div>
+
+      <!-- Gráfico variação por linha -->
+      <div class="cd">
+        <div class="cd-t">📊 Variação por linha — todos os 9 dias</div>
+        <canvas id="ch-var-linhas" height="160"></canvas>
+      </div>
+
+      <!-- Tabela de variações -->
+      <div class="cd">
+        <div class="cd-t">Tabela de variações dia a dia</div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Transição</th>
+                <th>ΔL3</th><th>ΔL4</th><th>ΔL5</th><th>ΔL6</th>
+                <th>ΔL7</th><th>ΔL8</th>
+                <th>ΔL10</th><th>ΔL12</th>
+              </tr>
+            </thead>
+            <tbody id="tb-var"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════ DETALHE POR LINHA ════════════════ -->
+    <div id="p-detalhe" class="page">
+      <div class="stabs" id="detalhe-tabs">
+        <button class="stab active" onclick="selLinha('L3',this)">L3</button>
+        <button class="stab" onclick="selLinha('L4',this)">L4</button>
+        <button class="stab" onclick="selLinha('L5',this)">L5</button>
+        <button class="stab" onclick="selLinha('L6',this)">L6</button>
+        <button class="stab" onclick="selLinha('L7',this)">L7</button>
+        <button class="stab" onclick="selLinha('L8',this)">L8</button>
+      </div>
+
+      <div class="kgrid" id="kpi-linha"></div>
+
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t" id="detalhe-chart-title">L3 — Evolução histórica</div>
+          <canvas id="ch-detalhe" height="180"></canvas>
+        </div>
+        <div class="cd" id="detalhe-info">
+          <!-- preenchido dinamicamente -->
+        </div>
+      </div>
+
+      <div class="cd">
+        <div class="cd-t" id="detalhe-tb-title">Histórico diário — L3</div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Dia</th><th>Valor</th><th>Variação</th><th>% vs máximo</th><th>Tendência</th></tr></thead>
+            <tbody id="tb-detalhe"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ct -->
+</main>
+
+<script>
+// ════════════════════════════════════════════
+// DADOS REAIS — Ciclo Maio 2026
+// ════════════════════════════════════════════
+const HOJE = new Date();
+const DATAS_MAPA = ['01/mai','02/mai','05/mai','06/mai','07/mai','08/mai','09/mai','12/mai','13/mai'];
+const DATAS_ISO  = ['2026-05-01','2026-05-02','2026-05-05','2026-05-06','2026-05-07','2026-05-08','2026-05-09','2026-05-12','2026-05-13'];
+
+// Dados históricos da aba Dinâmica MAPA
+const L = {
+  3:[727,712,722,679,711,703,679,687,592],
+  4:[218,228,241,234,190,189,285,347,359],
+  5:[5,6,6,0,22,9,8,5,8],
+  6:[0,1,1,0,0,0,0,1,0],
+  7:[190,191,273,301,303,320,278,233,168],
+  8:[154,148,185,218,216,252,221,216,153],
+};
+
+// Dados do Level Board (posição atual)
+const LB = {
+  L3:{val:1019,fila:'PATEC',fila_mapa:'Analisar PATEC Finalizado',cor:'#3266AD',corFill:'rgba(50,102,173,.12)'},
+  L4:{val:1215,fila:'Oportunidade em Andamento',fila_mapa:'Aguardar PATEC ser Finalizado',cor:'#3266AD',corFill:'rgba(50,102,173,.12)'},
+  L5:{val:43,fila:'Emitir Pedido PATEC',fila_mapa:'PATEC Finalizado sem fornecedores aprovados',cor:'#1D9E75',corFill:'rgba(29,158,117,.12)'},
+  L6:{val:405,fila:'Análise de Oportunidade',fila_mapa:'Analisar PATEC Cancelado',cor:'#1D9E75',corFill:'rgba(29,158,117,.12)'},
+  L7:{val:1694,fila:'Fila de publicação',fila_mapa:'Abrir PATEC Idêntico Não',cor:'#BA7517',corFill:'rgba(186,117,23,.12)'},
+  L8:{val:140,fila:'Item em Parada',fila_mapa:'Abrir PATEC Grupo de Mercadoria Obrigatório',cor:'#BA7517',corFill:'rgba(186,117,23,.12)'},
+};
+const L12_LB = 1019+1215+43+405; // 2682
+const L10_LB = L12_LB+1694+140;  // 4516
+
+// Histórico de lançamentos desta sessão
+let lancamentos = [];
+
+// ── INIT ──
+document.getElementById('tdt').textContent = HOJE.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+document.getElementById('lanc-data').value = HOJE.toISOString().split('T')[0];
+
+// ── SIDEBAR ──
+let chartsMap = {};
+function mkChart(id,type,data,opts={}){
+  if(chartsMap[id]) chartsMap[id].destroy();
+  chartsMap[id] = new Chart(document.getElementById(id),{
+    type, data,
+    options:{
+      responsive:true,
+      plugins:{legend:{display:opts.legend??false},...(opts.plugins||{})},
+      scales:opts.scales||{},
+      ...(opts.extra||{})
+    }
+  });
+  return chartsMap[id];
+}
+
+function go(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-it').forEach(i=>i.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={posicao:'Posição Atual — Mapa PATEC',lancamento:'Lançamento do Mapa',historico:'Histórico do Ciclo',variacao:'Variação Dia a Dia',detalhe:'Detalhe por Linha'};
+  document.getElementById('ttl').textContent = titles[id]||id;
+  if(id==='historico') renderHistorico();
+  if(id==='variacao')  renderVariacao();
+  if(id==='detalhe')   selLinha('L3', document.querySelector('#detalhe-tabs .stab'));
+  document.getElementById('sb').classList.remove('mob-open');
+}
+
+// ── UTILS ──
+function varSpan(d){
+  if(d===0) return '<span style="color:var(--tx2)">—</span>';
+  return d>0
+    ? `<span style="color:var(--vm);font-weight:600">▲ +${d}</span>`
+    : `<span style="color:var(--vd);font-weight:600">▼ ${d}</span>`;
+}
+function pct(v,base){ return base>0?Math.round(v/base*100):0; }
+function pill(txt,cls){ return `<span class="pl ${cls}">${txt}</span>`; }
+
+// ════════════════════════════════
+// POSIÇÃO ATUAL — render
+// ════════════════════════════════
+(function renderPosicao(){
+  // Linhas L12
+  const lL12=[
+    {k:'L3',nome:'Analisar PATEC Finalizado',fila:'PATEC (col BN)',val:1019,cor:'#3266AD'},
+    {k:'L4',nome:'Aguardar PATEC ser Finalizado',fila:'Oportunidade em Andamento',val:1215,cor:'#3266AD'},
+    {k:'L5',nome:'PATEC Finalizado sem fornecedores',fila:'Emitir Pedido PATEC',val:43,cor:'#1D9E75'},
+    {k:'L6',nome:'Analisar PATEC Cancelado',fila:'Análise de Oportunidade',val:405,cor:'#1D9E75'},
+  ];
+  const lL78=[
+    {k:'L7',nome:'Abrir PATEC Idêntico Não',fila:'Fila de publicação',val:1694,cor:'#BA7517'},
+    {k:'L8',nome:'Abrir PATEC Grupo de Mercadoria Obrigatório',fila:'Item em Parada',val:140,cor:'#BA7517'},
+  ];
+  const maxL12=Math.max(...lL12.map(l=>l.val));
+  const maxL78=Math.max(...lL78.map(l=>l.val));
+
+  function linhaHTML(l,maxVal){
+    const p = Math.round(l.val/maxVal*100);
+    const d9 = L[parseInt(l.k.slice(1))];
+    const varD = d9[d9.length-1]-d9[d9.length-2];
+    const varCls = varD>0?'lv-up':varD<0?'lv-dn':'lv-eq';
+    const varSym = varD>0?'▲ +':varD<0?'▼ ':'';
+    return `<div class="linha-card">
+      <span class="lnum">${l.k}</span>
+      <div class="linha-info">
+        <div class="linha-nome">${l.nome}</div>
+        <div class="linha-fila">Fila LB: ${l.fila}</div>
+        <div class="linha-bar"><div class="linha-fill" style="width:${p}%;background:${l.cor}"></div></div>
+      </div>
+      <span class="linha-val" style="color:${l.cor}">${l.val.toLocaleString('pt-BR')}</span>
+      <span class="linha-var ${varCls}">${varD!==0?varSym+Math.abs(varD):'—'}<br><span style="font-size:9px;color:var(--tx2)">vs D8</span></span>
+    </div>`;
+  }
+  document.getElementById('linhas-l12').innerHTML=lL12.map(l=>linhaHTML(l,maxL12)).join('');
+  document.getElementById('linhas-l78').innerHTML=lL78.map(l=>linhaHTML(l,maxL78)).join('');
+
+  // Pizza L12
+  mkChart('ch-pizza-l12','doughnut',{
+    labels:['L3 — Analisar PATEC','L4 — Aguardar PATEC','L5 — s/ fornec.','L6 — Cancelado'],
+    datasets:[{data:[1019,1215,43,405],backgroundColor:['#3266AD','#5A8DD9','#1D9E75','#8BC4B2'],borderWidth:2,borderColor:'#fff'}]
+  },{legend:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}}},extra:{cutout:'50%'}});
+
+  // Pizza L10
+  mkChart('ch-pizza-l10','doughnut',{
+    labels:['L3','L4','L5','L6','L7 — Abrir Idêntico','L8 — Grupo Merc.'],
+    datasets:[{data:[1019,1215,43,405,1694,140],backgroundColor:['#3266AD','#5A8DD9','#1D9E75','#8BC4B2','#BA7517','#E8A030'],borderWidth:2,borderColor:'#fff'}]
+  },{legend:true,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:12}}},extra:{cutout:'50%'}});
+})();
+
+// ════════════════════════════════
+// LANÇAMENTO
+// ════════════════════════════════
+function recalcL(){
+  const g=id=>parseInt(document.getElementById(id).value)||0;
+  const l10=g('lv3')+g('lv4')+g('lv5')+g('lv6')+g('lv7')+g('lv8');
+  const l12=g('lv3')+g('lv4')+g('lv5')+g('lv6');
+  document.getElementById('l10-calc').textContent=l10.toLocaleString('pt-BR');
+  document.getElementById('l12-calc').textContent=l12.toLocaleString('pt-BR');
+}
+function salvarLancamento(){
+  const g=id=>parseInt(document.getElementById(id).value)||0;
+  const dt=document.getElementById('lanc-data').value;
+  if(!dt){alert('Informe a data.');return;}
+  const row={data:dt,obs:document.getElementById('lanc-obs').value,
+    L3:g('lv3'),L4:g('lv4'),L5:g('lv5'),L6:g('lv6'),L7:g('lv7'),L8:g('lv8')};
+  row.L10=row.L3+row.L4+row.L5+row.L6+row.L7+row.L8;
+  row.L12=row.L3+row.L4+row.L5+row.L6;
+  lancamentos.push(row);
+  document.getElementById('lanc-hist-card').style.display='block';
+  document.getElementById('lanc-tb').innerHTML=lancamentos.map(r=>
+    `<tr><td>${r.data.split('-').reverse().join('/')}</td>
+    <td>${r.L3}</td><td>${r.L4}</td><td>${r.L5}</td><td>${r.L6}</td><td>${r.L7}</td><td>${r.L8}</td>
+    <td style="font-weight:700">${r.L10.toLocaleString('pt-BR')}</td>
+    <td style="font-weight:700;color:var(--azm)">${r.L12.toLocaleString('pt-BR')}</td>
+    <td style="font-size:10px;color:var(--tx2)">${r.obs||'—'}</td></tr>`
+  ).join('');
+  const msg=document.getElementById('lanc-msg');
+  msg.style.display='inline';setTimeout(()=>msg.style.display='none',3000);
+}
+function exportLancamento(){
+  const g=id=>parseInt(document.getElementById(id).value)||0;
+  const dt=document.getElementById('lanc-data').value.split('-').reverse().join('/');
+  const l3=g('lv3'),l4=g('lv4'),l5=g('lv5'),l6=g('lv6'),l7=g('lv7'),l8=g('lv8');
+  const rows=[
+    ['Data referência',dt],['',''],
+    ['Linha','Fila do MAPA (aba Dinâmica)','Fila Level Board','Quantidade'],
+    ['L3','Analisar PATEC Finalizado','PATEC',l3],
+    ['L4','Aguardar PATEC ser Finalizado','Oportunidade em Andamento',l4],
+    ['L5','PATEC Fin. sem fornec. aprovados','Emitir Pedido PATEC',l5],
+    ['L6','Analisar PATEC Cancelado','Análise de Oportunidade',l6],
+    ['L7','Abrir PATEC Idêntico Não','Fila de publicação',l7],
+    ['L8','Abrir PATEC Grupo Merc. Obrig.','Item em Parada',l8],
+    ['','','',''],
+    ['L10 (soma total)','','',l3+l4+l5+l6+l7+l8],
+    ['L12 (somente PATEC)','','',l3+l4+l5+l6],
+  ];
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:8},{wch:42},{wch:34},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Lançamento MAPA');
+  XLSX.writeFile(wb,`Lancamento_MAPA_${dt.replace(/\//g,'-')}.xlsx`);
+}
+
+// ════════════════════════════════
+// HISTÓRICO
+// ════════════════════════════════
+const HIST_DATASETS = {
+  todas:[
+    {label:'L10',data:DATAS_MAPA.map((_,i)=>Object.keys(L).reduce((s,k)=>s+L[k][i],0)),borderColor:'#3266AD',borderWidth:2.5,pointRadius:3,fill:false,tension:.1},
+    {label:'L12',data:DATAS_MAPA.map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]),borderColor:'#1D9E75',borderWidth:2.5,pointRadius:3,fill:false,tension:.1},
+    {label:'L3',data:L[3],borderColor:'#5A8DD9',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+    {label:'L4',data:L[4],borderColor:'#8BD9C5',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+    {label:'L7',data:L[7],borderColor:'#EF9F27',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+    {label:'L8',data:L[8],borderColor:'#E8C072',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+  ],
+  l12:[{label:'L12 (PATEC)',data:DATAS_MAPA.map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]),borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.08)',borderWidth:2.5,pointRadius:4,fill:true,tension:.15}],
+  l34:[
+    {label:'L3',data:L[3],borderColor:'#3266AD',borderWidth:2,pointRadius:3,fill:false,tension:.1},
+    {label:'L4',data:L[4],borderColor:'#1D9E75',borderWidth:2,pointRadius:3,fill:false,tension:.1},
+  ],
+  l78:[
+    {label:'L7',data:L[7],borderColor:'#BA7517',borderWidth:2,pointRadius:3,fill:false,tension:.1},
+    {label:'L8',data:L[8],borderColor:'#E24B4A',borderWidth:2,pointRadius:3,fill:false,tension:.1},
+  ],
+};
+const SCALE_HIST={y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9}}}};
+
+function renderHistorico(){
+  mkChart('ch-hist','line',{labels:DATAS_MAPA,datasets:HIST_DATASETS.todas},{legend:true,scales:SCALE_HIST});
+
+  // Mini-gráficos por linha
+  [[3,'#3266AD'],[4,'#3266AD'],[5,'#1D9E75'],[6,'#1D9E75'],[7,'#BA7517'],[8,'#BA7517']].forEach(([k,cor])=>{
+    const prev=L[k].slice(0,-1);const last=L[k].slice(1);
+    const cols=DATAS_MAPA.map((_,i)=>i>0?(L[k][i]>L[k][i-1]?'rgba(226,75,74,.7)':'rgba(29,158,117,.7)'):cor);
+    mkChart(`ch-l${k}`,'bar',{labels:DATAS_MAPA,datasets:[{data:L[k],backgroundColor:cols,borderRadius:3}]},
+      {scales:{y:{grid:{display:false},ticks:{font:{size:8},maxTicksLimit:4}},x:{grid:{display:false},ticks:{font:{size:8}}}}});
+  });
+
+  // Tabela
+  const l12arr=DATAS_MAPA.map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]);
+  const l10arr=DATAS_MAPA.map((_,i)=>Object.keys(L).reduce((s,k)=>s+L[k][i],0));
+  const maxL12=Math.max(...l12arr);
+  document.getElementById('tb-hist').innerHTML=DATAS_MAPA.map((dt,i)=>{
+    const l12=l12arr[i],l10=l10arr[i];
+    const dif=i>0?l12-l12arr[i-1]:0;
+    return`<tr>
+      <td><strong>Dia ${i+1}</strong> <span style="font-size:10px;color:var(--tx2)">${dt}</span></td>
+      <td>${L[3][i]}</td><td>${L[4][i]}</td><td>${L[5][i]}</td><td>${L[6][i]}</td>
+      <td>${L[7][i]}</td><td>${L[8][i]}</td>
+      <td style="font-weight:600">${l10.toLocaleString('pt-BR')}</td>
+      <td style="font-weight:700;color:var(--azm)">${l12.toLocaleString('pt-BR')}</td>
+      <td>${i>0?varSpan(dif):'—'}</td>
+      <td>${pill(pct(l12,maxL12)+'%',l12===maxL12?'pl-ok':'pl-g')}</td>
+    </tr>`;
+  }).join('');
+  // Tfoot médias
+  const avgL=k=>Math.round(L[k].reduce((a,b)=>a+b,0)/9);
+  const avgL12=Math.round(l12arr.reduce((a,b)=>a+b,0)/9);
+  const avgL10=Math.round(l10arr.reduce((a,b)=>a+b,0)/9);
+  document.getElementById('tf-hist').innerHTML=`<tr>
+    <td>MÉDIA</td>
+    <td>${avgL(3)}</td><td>${avgL(4)}</td><td>${avgL(5)}</td><td>${avgL(6)}</td>
+    <td>${avgL(7)}</td><td>${avgL(8)}</td>
+    <td>${avgL10.toLocaleString('pt-BR')}</td>
+    <td style="color:var(--azm)">${avgL12.toLocaleString('pt-BR')}</td>
+    <td>—</td><td>—</td>
+  </tr>`;
+}
+function setHistChart(tipo,btn){
+  document.querySelectorAll('#p-historico .stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  mkChart('ch-hist','line',{labels:DATAS_MAPA,datasets:HIST_DATASETS[tipo]},{legend:true,scales:SCALE_HIST});
+}
+function exportHistorico(){
+  const l12arr=DATAS_MAPA.map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]);
+  const l10arr=DATAS_MAPA.map((_,i)=>Object.keys(L).reduce((s,k)=>s+L[k][i],0));
+  const hd=['Dia','Data','L3','L4','L5','L6','L7','L8','L10','L12','Var.L12'];
+  const rows=DATAS_MAPA.map((dt,i)=>{
+    const dif=i>0?l12arr[i]-l12arr[i-1]:0;
+    return[i+1,dt,L[3][i],L[4][i],L[5][i],L[6][i],L[7][i],L[8][i],l10arr[i],l12arr[i],i>0?dif:''];
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([hd,...rows]);
+  ws['!cols']=[{wch:6},{wch:9},...Array(9).fill({wch:8})];
+  XLSX.utils.book_append_sheet(wb,ws,'Histórico Mapa');
+  XLSX.writeFile(wb,'Historico_MAPA_PATEC.xlsx');
+}
+
+// ════════════════════════════════
+// VARIAÇÃO
+// ════════════════════════════════
+function renderVariacao(){
+  // Cards variação dia 9 vs dia 8
+  const linhasVar=[
+    {k:3,nom:'L3',cor:'#3266AD'},{k:4,nom:'L4',cor:'#3266AD'},
+    {k:5,nom:'L5',cor:'#1D9E75'},{k:6,nom:'L6',cor:'#1D9E75'},
+    {k:7,nom:'L7',cor:'#BA7517'},{k:8,nom:'L8',cor:'#BA7517'},
+  ];
+  const l12d8=L[3][7]+L[4][7]+L[5][7]+L[6][7];
+  const l12d9=L[3][8]+L[4][8]+L[5][8]+L[6][8];
+  const l10d8=Object.keys(L).reduce((s,k)=>s+L[k][7],0);
+  const l10d9=Object.keys(L).reduce((s,k)=>s+L[k][8],0);
+  const varCards=[...linhasVar.map(({k,nom,cor})=>{
+    const d=L[k][8]-L[k][7];
+    const cls=d>0?'vc-up':d<0?'vc-dn':'vc-eq';
+    return`<div class="var-card ${cls}">
+      <div class="var-card-l">${nom}</div>
+      <div class="var-card-v" style="color:${cor}">${L[k][8].toLocaleString('pt-BR')}</div>
+      <div class="var-card-d" style="color:${d>0?'var(--vm)':d<0?'var(--vd)':'var(--tx2)'}">${d>0?'▲ +':d<0?'▼ ':''}${d!==0?Math.abs(d):'—'}</div>
+    </div>`;
+  }),
+  `<div class="var-card ${(l10d9-l10d8)>0?'vc-up':(l10d9-l10d8)<0?'vc-dn':'vc-eq'}" style="border:2px solid var(--azm)">
+    <div class="var-card-l">L10</div>
+    <div class="var-card-v">${l10d9.toLocaleString('pt-BR')}</div>
+    <div class="var-card-d" style="color:${(l10d9-l10d8)>0?'var(--vm)':'var(--vd)'}">${(l10d9-l10d8)>0?'▲ +':'▼ '}${Math.abs(l10d9-l10d8)}</div>
+  </div>`,
+  `<div class="var-card ${(l12d9-l12d8)>0?'vc-up':'vc-dn'}" style="border:2px solid var(--vd)">
+    <div class="var-card-l">L12 (PATEC)</div>
+    <div class="var-card-v" style="color:var(--azm)">${l12d9.toLocaleString('pt-BR')}</div>
+    <div class="var-card-d" style="color:${(l12d9-l12d8)>0?'var(--vm)':'var(--vd)'}">${(l12d9-l12d8)>0?'▲ +':'▼ '}${Math.abs(l12d9-l12d8)}</div>
+  </div>`];
+  document.getElementById('var-cards').innerHTML=varCards.join('');
+
+  // Gráfico variação L12
+  const l12arr=DATAS_MAPA.map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]);
+  const varL12=l12arr.map((v,i)=>i>0?v-l12arr[i-1]:0);
+  mkChart('ch-var-l12','bar',{
+    labels:DATAS_MAPA,
+    datasets:[{
+      label:'Variação L12',data:varL12,
+      backgroundColor:varL12.map(v=>v>0?'rgba(226,75,74,.75)':'rgba(29,158,117,.75)'),
+      borderRadius:4,
+    }]
+  },{scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  // Gráfico variação por linha (stacked)
+  const varLinhas=[3,4,7,8].map(k=>({
+    label:`L${k}`,
+    data:L[k].map((v,i)=>i>0?v-L[k][i-1]:0),
+    borderColor:k<=4?'#3266AD':k===5||k===6?'#1D9E75':'#BA7517',
+    backgroundColor:(k<=4?'rgba(50,102,173,.15)':k<7?'rgba(29,158,117,.15)':'rgba(186,117,23,.15)'),
+    borderWidth:2,pointRadius:2,fill:false,tension:.1,
+  }));
+  mkChart('ch-var-linhas','line',{labels:DATAS_MAPA,datasets:varLinhas},{legend:true,scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  // Tabela variações
+  const l10arr=DATAS_MAPA.map((_,i)=>Object.keys(L).reduce((s,k)=>s+L[k][i],0));
+  document.getElementById('tb-var').innerHTML=DATAS_MAPA.slice(1).map((dt,i)=>{
+    const j=i+1;
+    const dL=[3,4,5,6,7,8].map(k=>L[k][j]-L[k][i]);
+    const dL10=l10arr[j]-l10arr[i];
+    const dL12=l12arr[j]-l12arr[i];
+    return`<tr>
+      <td><strong>D${i+1}→D${j+1}</strong> <span style="font-size:10px;color:var(--tx2)">${DATAS_MAPA[i]}→${dt}</span></td>
+      ${dL.map(d=>`<td style="font-weight:600;color:${d>0?'var(--vm)':d<0?'var(--vd)':'var(--tx2)'}">${d>0?'+':''}${d!==0?d:'—'}</td>`).join('')}
+      <td style="font-weight:600;color:${dL10>0?'var(--vm)':dL10<0?'var(--vd)':'var(--tx2)'}">${dL10>0?'+':''}${dL10}</td>
+      <td style="font-weight:700;color:${dL12>0?'var(--vm)':dL12<0?'var(--vd)':'var(--tx2)'}">${dL12>0?'+':''}${dL12}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// DETALHE POR LINHA
+// ════════════════════════════════
+function selLinha(linha,btn){
+  document.querySelectorAll('#detalhe-tabs .stab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const k=parseInt(linha.slice(1));
+  const data=L[k];
+  const lb=LB[linha];
+  const max=Math.max(...data), min=Math.min(...data);
+  const avg=Math.round(data.reduce((a,b)=>a+b,0)/data.length);
+  const tendencia=data[data.length-1]-data[data.length-2];
+
+  document.getElementById('kpi-linha').innerHTML=`
+    <div class="kc"><div class="kc-l">Valor atual (LB)</div><div class="kc-v xl" style="color:${lb.cor}">${lb.val.toLocaleString('pt-BR')}</div><div class="kc-s">Level Board</div></div>
+    <div class="kc ok"><div class="kc-l">Máximo (aba Din.)</div><div class="kc-v">${max.toLocaleString('pt-BR')}</div><div class="kc-s">Dia ${data.indexOf(max)+1}</div></div>
+    <div class="kc warn"><div class="kc-l">Mínimo (aba Din.)</div><div class="kc-v">${min.toLocaleString('pt-BR')}</div><div class="kc-s">Dia ${data.indexOf(min)+1}</div></div>
+    <div class="kc"><div class="kc-l">Média (aba Din.)</div><div class="kc-v" style="color:var(--az)">${avg.toLocaleString('pt-BR')}</div><div class="kc-s">9 dias</div></div>
+    <div class="kc ${tendencia>0?'bad':tendencia<0?'ok':''}"><div class="kc-l">Última variação</div><div class="kc-v">${tendencia>0?'▲ +':tendencia<0?'▼ ':''}${Math.abs(tendencia)}</div><div class="kc-s">D9 vs D8</div></div>
+  `;
+
+  document.getElementById('detalhe-chart-title').textContent=`${linha} — ${lb.fila_mapa} (histórico 9 dias)`;
+  document.getElementById('detalhe-tb-title').textContent=`Histórico diário — ${linha}`;
+
+  const bc=data.map((v,i)=>i>0?(v>data[i-1]?'rgba(226,75,74,.75)':'rgba(29,158,117,.75)'):lb.cor);
+  mkChart('ch-detalhe','bar',{
+    labels:DATAS_MAPA,
+    datasets:[
+      {label:linha,data,backgroundColor:bc,borderRadius:4},
+      {label:'Média',data:Array(9).fill(avg),type:'line',borderColor:'#888',borderWidth:1.5,borderDash:[4,3],pointRadius:0},
+    ]
+  },{legend:true,scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}},min:Math.max(0,min-10)},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  document.getElementById('detalhe-info').innerHTML=`
+    <div class="cd-t">${linha} — Informações</div>
+    <div style="font-size:12px;line-height:2;color:var(--tx2)">
+      <div><strong style="color:var(--tx)">Fila MAPA:</strong> ${lb.fila_mapa}</div>
+      <div><strong style="color:var(--tx)">Fila Level Board:</strong> ${lb.fila}</div>
+      <div><strong style="color:var(--tx)">Valor Level Board:</strong> <span style="font-size:16px;font-weight:700;color:${lb.cor}">${lb.val.toLocaleString('pt-BR')}</span></div>
+      <div><strong style="color:var(--tx)">Incluso no L12?</strong> ${k<=6?pill('Sim — L12','pl-ok'):pill('Não — apenas L10','pl-w')}</div>
+      <div style="margin-top:.75rem;padding:.75rem;background:var(--cin);border-radius:7px;border:1px solid var(--brd)">
+        <div style="font-size:10px;font-weight:700;color:var(--tx2);margin-bottom:6px">AMPLITUDE (aba Dinâmica)</div>
+        <div style="display:flex;justify-content:space-between;font-size:13px">
+          <div><span style="color:var(--tx2);font-size:10px">MÍN</span><br><strong>${min}</strong></div>
+          <div style="text-align:center"><span style="color:var(--tx2);font-size:10px">MÉDIA</span><br><strong>${avg}</strong></div>
+          <div style="text-align:right"><span style="color:var(--tx2);font-size:10px">MÁX</span><br><strong>${max}</strong></div>
+        </div>
+        <div style="height:6px;background:#EEE;border-radius:3px;margin-top:8px;overflow:hidden">
+          <div style="height:100%;background:${lb.cor};border-radius:3px;width:${pct(data[data.length-1]-min,max-min)}%;margin-left:${pct(min,max)}%"></div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('tb-detalhe').innerHTML=data.map((v,i)=>{
+    const dif=i>0?v-data[i-1]:0;
+    const tend=i>0?(dif>20?'📈 Alta forte':dif>0?'↗ Alta':dif<-20?'📉 Queda forte':dif<0?'↘ Queda':'→ Estável'):'—';
+    return`<tr>
+      <td><strong>Dia ${i+1}</strong> <span style="font-size:10px;color:var(--tx2)">${DATAS_MAPA[i]}</span></td>
+      <td style="font-size:15px;font-weight:700;color:${lb.cor}">${v.toLocaleString('pt-BR')}</td>
+      <td>${i>0?varSpan(dif):'—'}</td>
+      <td>${pill(pct(v,max)+'%',v===max?'pl-ok':v===min?'pl-b':'pl-g')}</td>
+      <td style="font-size:11px">${tend}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── INIT ──
+renderVariacao();
+renderHistorico();
+selLinha('L3',null);
+</script>
+</body>
+</html>
