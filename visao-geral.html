@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATEC — Visão Geral</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --az:#1A3A6B;--azm:#3266AD;--azc:#E6F1FB;
+  --vd:#1D9E75;--vdc:#EAF3DE;
+  --am:#BA7517;--amc:#FAEEDA;
+  --vm:#E24B4A;--vmc:#FCEBEB;
+  --bg:#F4F6FA;--brd:#E0E0E0;--cin:#F7F7F7;
+  --tx:#1A1A1A;--tx2:#666;--sw:220px;
+}
+body{font-family:Arial,sans-serif;font-size:14px;color:var(--tx);background:var(--bg);display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sw);background:var(--az);min-height:100vh;position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column;overflow-y:auto}
+.sb-logo{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.12)}
+.sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo p{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-sec{padding:.75rem 1rem .2rem;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase}
+.sb-it{display:flex;align-items:center;gap:8px;padding:.6rem 1rem;cursor:pointer;font-size:12px;color:rgba(255,255,255,.65);border-left:3px solid transparent;transition:all .15s;user-select:none}
+.sb-it:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-it.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--vd)}
+.sb-badge{margin-left:auto;font-size:9px;background:rgba(186,117,23,.35);color:#FAC775;padding:1px 6px;border-radius:8px}
+
+/* ── MAIN ── */
+#mn{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--brd);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;gap:1rem}
+.topbar-l h2{font-size:15px;font-weight:700;color:var(--az)}
+.topbar-l p{font-size:11px;color:var(--tx2);margin-top:1px}
+.top-dt{font-size:11px;color:var(--tx2);background:var(--cin);padding:4px 10px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.ct{padding:1.5rem;flex:1}
+
+/* ── PÁGINAS ── */
+.page{display:none}.page.active{display:block}
+
+/* ── SUBTABS ── */
+.stabs{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap}
+.stab{padding:6px 16px;font-size:12px;border:1px solid var(--brd);border-radius:20px;background:#fff;cursor:pointer;color:var(--tx2);transition:all .15s;font-weight:500}
+.stab.active{background:var(--azm);border-color:var(--azm);color:#fff;font-weight:600}
+
+/* ── KPI ── */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;margin-bottom:1.25rem}
+.kc{background:#fff;border-radius:10px;padding:1rem 1.1rem;border:1px solid var(--brd);border-top:3px solid var(--azm);transition:box-shadow .15s}
+.kc:hover{box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.kc.ok{border-top-color:var(--vd)}.kc.warn{border-top-color:var(--am)}.kc.bad{border-top-color:var(--vm)}
+.kc-l{font-size:10px;color:var(--tx2);margin-bottom:5px;line-height:1.4}
+.kc-v{font-size:22px;font-weight:700;color:var(--az)}
+.kc.ok .kc-v{color:var(--vd)}.kc.warn .kc-v{color:var(--am)}.kc.bad .kc-v{color:var(--vm)}
+.kc-s{font-size:10px;color:var(--tx2);margin-top:3px}
+.kc-trend{font-size:11px;font-weight:600;margin-top:2px}
+.trend-up{color:var(--vd)}.trend-dn{color:var(--vm)}.trend-eq{color:var(--tx2)}
+
+/* ── CARDS ── */
+.cd{background:#fff;border-radius:10px;padding:1.25rem;border:1px solid var(--brd);margin-bottom:1rem}
+.cd-t{font-size:13px;font-weight:700;color:var(--az);margin-bottom:1rem;display:flex;align-items:center;gap:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;margin-bottom:1rem}
+.g24{display:grid;grid-template-columns:2.2fr 1fr;gap:1rem;margin-bottom:1rem}
+
+/* ── ALERTA ── */
+.al{border-radius:7px;padding:.7rem 1rem;margin-bottom:1rem;font-size:12px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.al-v{background:var(--vdc);color:#3B6D11;border-left:3px solid var(--vd)}
+.al-a{background:var(--amc);color:#854F0B;border-left:3px solid var(--am)}
+.al-r{background:var(--vmc);color:#A32D2D;border-left:3px solid var(--vm)}
+.al-b{background:var(--azc);color:#0C447C;border-left:3px solid var(--azm)}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto;border-radius:8px;border:1px solid var(--brd);max-height:380px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{position:sticky;top:0;background:#F0F4FA;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--tx2);border-bottom:1px solid var(--brd);white-space:nowrap;z-index:1}
+td{padding:7px 10px;border-bottom:1px solid #F5F5F5;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFF}
+tfoot td{background:#F0F4FA;font-weight:700;position:sticky;bottom:0;border-top:1px solid var(--brd)}
+
+/* ── PILL ── */
+.pl{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:600}
+.pl-ok{background:var(--vdc);color:#3B6D11}
+.pl-w{background:var(--amc);color:#854F0B}
+.pl-b{background:var(--vmc);color:#A32D2D}
+.pl-g{background:var(--cin);color:var(--tx2)}
+.pl-az{background:var(--azc);color:#0C447C}
+
+/* ── MAPA LINHAS ── */
+.mapa-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #F5F5F5}
+.mapa-row:last-child{border-bottom:none}
+.lnum{font-size:10px;font-weight:700;color:var(--azm);background:var(--azc);padding:2px 7px;border-radius:4px;width:28px;text-align:center;flex-shrink:0}
+.mapa-nome{font-size:12px;flex:1;color:var(--tx)}
+.mapa-val{font-size:15px;font-weight:700;color:var(--az);min-width:60px;text-align:right}
+.mapa-bar{height:5px;background:#EEE;border-radius:3px;margin-top:3px;overflow:hidden}
+.mapa-fill{height:100%;border-radius:3px}
+
+/* ── FAIXAS ── */
+.faixa-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem}
+.faixa{text-align:center;padding:.875rem .5rem;border-radius:9px;border:1px solid var(--brd)}
+.faixa-n{font-size:28px;font-weight:700}
+.faixa-l{font-size:10px;color:var(--tx2);margin-top:3px}
+
+/* ── BARRA COLABORADOR ── */
+.colab-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F5F5F5}
+.colab-row:last-child{border-bottom:none}
+.colab-nome{font-size:12px;font-weight:600;width:72px;flex-shrink:0}
+.colab-bar-wrap{flex:1}
+.colab-bar{height:8px;background:#EEE;border-radius:4px;overflow:hidden;margin-bottom:2px}
+.colab-fill{height:100%;border-radius:4px;transition:width .5s}
+.colab-meta{font-size:9px;color:var(--tx2)}
+.colab-num{font-size:13px;font-weight:700;width:34px;text-align:right;flex-shrink:0}
+.colab-pct{font-size:10px;width:36px;text-align:right;flex-shrink:0}
+
+/* ── ALERTA CICLO ── */
+.ciclo-box{border-radius:10px;padding:1.1rem 1.25rem;border:1px solid var(--brd);margin-bottom:1rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.ciclo-ico{font-size:28px;flex-shrink:0}
+.ciclo-txt h3{font-size:13px;font-weight:700;margin-bottom:3px}
+.ciclo-txt p{font-size:12px;color:var(--tx2);line-height:1.5}
+.ciclo-verde{background:var(--vdc);border-color:#A8D5A2}
+.ciclo-amarelo{background:var(--amc);border-color:#DDB56A}
+.ciclo-vermelho{background:var(--vmc);border-color:#EFA5A5}
+
+/* ── PROJEÇÃO CARD ── */
+.proj-card{background:linear-gradient(135deg,var(--az),var(--azm));border-radius:10px;padding:1.25rem;color:#fff;margin-bottom:1rem}
+.proj-card h3{font-size:12px;opacity:.75;margin-bottom:.5rem;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.proj-val{font-size:32px;font-weight:700}
+.proj-sub{font-size:11px;opacity:.7;margin-top:4px}
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:.875rem}
+.proj-item{background:rgba(255,255,255,.12);border-radius:7px;padding:.65rem .875rem;text-align:center}
+.proj-item-v{font-size:18px;font-weight:700}
+.proj-item-l{font-size:9px;opacity:.7;margin-top:2px}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 16px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.btn-p{background:var(--azm);color:#fff}.btn-p:hover{background:var(--az)}
+.btn-s{background:#fff;color:var(--tx);border:1px solid var(--brd)}.btn-s:hover{background:var(--cin)}
+
+/* ── HAMBURGUER ── */
+#hbg{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--az);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:16px;cursor:pointer}
+@media(max-width:820px){
+  #hbg{display:block}
+  #sb{transform:translateX(-100%);transition:.25s}
+  #sb.mob-open{transform:translateX(0)}
+  #mn{margin-left:0}
+  .g24{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr}
+  .g3{grid-template-columns:1fr 1fr}
+  .faixa-grid{grid-template-columns:1fr 1fr 1fr}
+}
+
+/* ── SEPARADOR ── */
+.section-title{font-size:13px;font-weight:700;color:var(--az);margin-bottom:.875rem;padding-bottom:.5rem;border-bottom:2px solid var(--azc);display:flex;align-items:center;gap:6px}
+</style>
+</head>
+<body>
+
+<button id="hbg" onclick="document.getElementById('sb').classList.toggle('mob-open')">☰</button>
+
+<!-- SIDEBAR -->
+<nav id="sb">
+  <div class="sb-logo">
+    <h1>PATEC</h1>
+    <p>Gestão de Compras</p>
+  </div>
+  <div class="sb-sec">Principal</div>
+  <div class="sb-it active" onclick="go('visao',this)">◈ Visão Geral</div>
+  <div class="sb-sec">Análises</div>
+  <div class="sb-it" onclick="go('mapa',this)">📊 Mapa — L10 / L12</div>
+  <div class="sb-it" onclick="go('medicao',this)">📈 Gráfico de Medição</div>
+  <div class="sb-it" onclick="go('colab',this)">👥 Por Colaborador</div>
+  <div class="sb-it" onclick="go('validade',this)">⏱ Validade Oportunidades</div>
+  <div class="sb-sec">Sistema</div>
+  <div class="sb-it" style="opacity:.5;cursor:default">✏️ Produção <span class="sb-badge">módulo sep.</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">⬆ Upload MAPA <span class="sb-badge">breve</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">⚠ Itens Críticos <span class="sb-badge">breve</span></div>
+</nav>
+
+<!-- MAIN -->
+<main id="mn">
+  <div class="topbar">
+    <div class="topbar-l">
+      <h2 id="ttl">Visão Geral</h2>
+      <p>Ciclo Maio 2026 · 22 dias úteis · Meta 90 itens/dia · Referência: <span id="ref-data"></span></p>
+    </div>
+    <div class="top-dt" id="tdt"></div>
+  </div>
+
+  <div class="ct">
+
+    <!-- ══════════════════ VISÃO GERAL ══════════════════ -->
+    <div id="p-visao" class="page active">
+
+      <!-- KPIs principais -->
+      <div class="kgrid">
+        <div class="kc ok">
+          <div class="kc-l">Total PATEC (L12)</div>
+          <div class="kc-v">2.682</div>
+          <div class="kc-s">L3+L4+L5+L6</div>
+          <div class="kc-trend trend-up">▲ +265 vs 8/mai</div>
+        </div>
+        <div class="kc" id="kc-real">
+          <div class="kc-l">Realizado acumulado</div>
+          <div class="kc-v" style="color:var(--azm)">743</div>
+          <div class="kc-s">10 dias registrados</div>
+          <div class="kc-trend trend-dn">▼ −157 vs programado</div>
+        </div>
+        <div class="kc warn">
+          <div class="kc-l">Gap vs programado</div>
+          <div class="kc-v">−157</div>
+          <div class="kc-s">Programado: 900</div>
+          <div class="kc-trend trend-dn">91,7% → 82,6%</div>
+        </div>
+        <div class="kc warn">
+          <div class="kc-l">Meta necessária</div>
+          <div class="kc-v">103/dia</div>
+          <div class="kc-s">12 dias restantes</div>
+          <div class="kc-trend" style="color:var(--am)">+14% acima da meta base</div>
+        </div>
+        <div class="kc">
+          <div class="kc-l">Saídas acumuladas</div>
+          <div class="kc-v" style="color:var(--az)">439</div>
+          <div class="kc-s">10 dias</div>
+          <div class="kc-trend trend-eq">Média: 44/dia</div>
+        </div>
+        <div class="kc">
+          <div class="kc-l">Ritmo atual</div>
+          <div class="kc-v" style="color:var(--am)">74/dia</div>
+          <div class="kc-s">média dos 10 dias</div>
+          <div class="kc-trend trend-dn">▼ −16 vs meta (90)</div>
+        </div>
+      </div>
+
+      <!-- Alerta dinâmico -->
+      <div class="ciclo-box ciclo-amarelo">
+        <div class="ciclo-ico">⚠</div>
+        <div class="ciclo-txt">
+          <h3>Atenção — ciclo abaixo da meta</h3>
+          <p>Ritmo atual de <strong>74 itens/dia</strong> gera projeção de <strong>1.631 itens</strong> ao fim do ciclo (meta: 1.980). Para fechar em 100% são necessários <strong>103 itens/dia</strong> nos 12 dias restantes.</p>
+        </div>
+      </div>
+
+      <!-- Projeção card -->
+      <div class="proj-card">
+        <h3>Projeção de fechamento</h3>
+        <div class="proj-val" id="proj-val">1.631</div>
+        <div class="proj-sub">itens projetados ao final do ciclo (22 dias úteis)</div>
+        <div class="proj-grid">
+          <div class="proj-item"><div class="proj-item-v">1.980</div><div class="proj-item-l">Meta 100%</div></div>
+          <div class="proj-item"><div class="proj-item-v">82%</div><div class="proj-item-l">% projetada</div></div>
+          <div class="proj-item"><div class="proj-item-v">12</div><div class="proj-item-l">Dias restantes</div></div>
+          <div class="proj-item"><div class="proj-item-v">103</div><div class="proj-item-l">Meta necessária/dia</div></div>
+        </div>
+      </div>
+
+      <!-- Gráfico acumulado + faixas -->
+      <div class="g24">
+        <div class="cd">
+          <div class="cd-t">📈 Programado × Realizado (acumulado + projeção)</div>
+          <canvas id="ch-acum" height="140"></canvas>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Faixas de performance — 10 dias</div>
+          <div class="faixa-grid">
+            <div class="faixa" style="border-top:3px solid var(--vd)">
+              <div class="faixa-n" style="color:var(--vd)">3</div>
+              <div class="faixa-l">≥ 100%<br>≥ 90 itens</div>
+            </div>
+            <div class="faixa" style="border-top:3px solid var(--am)">
+              <div class="faixa-n" style="color:var(--am)">2</div>
+              <div class="faixa-l">80–99%<br>72–89 itens</div>
+            </div>
+            <div class="faixa" style="border-top:3px solid var(--vm)">
+              <div class="faixa-n" style="color:var(--vm)">5</div>
+              <div class="faixa-l">≤ 79%<br>< 72 itens</div>
+            </div>
+          </div>
+          <div style="margin-top:1rem">
+            <div class="section-title" style="font-size:11px;margin-bottom:.75rem">Média por colaborador</div>
+            <div id="colab-bars"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico diário + mapa -->
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t">📊 Produção diária — últimos 10 dias</div>
+          <canvas id="ch-diario" height="160"></canvas>
+        </div>
+        <div class="cd">
+          <div class="cd-t">📋 Mapa PATEC — posição atual</div>
+          <div id="mapa-mini"></div>
+        </div>
+      </div>
+
+      <!-- Tabela resumo -->
+      <div class="cd">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:8px">
+          <div class="cd-t" style="margin:0">Resumo — 10 dias registrados</div>
+          <button class="btn btn-s" onclick="exportResumo()">💾 Exportar Excel</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Dia</th><th>Data</th>
+                <th>Programado</th><th>Realizado</th>
+                <th>Acum. Prog.</th><th>Acum. Real.</th>
+                <th>Gap</th><th>Performance</th><th>Saídas</th>
+              </tr>
+            </thead>
+            <tbody id="tb-resumo"></tbody>
+            <tfoot id="tf-resumo"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ MAPA L10/L12 ══════════════════ -->
+    <div id="p-mapa" class="page">
+      <div class="al al-b">ℹ Valores calculados automaticamente via Level Board · Fila: col BN (Status_Desc) · Data de referência: 14/05/2026</div>
+
+      <!-- L10/L12 destaque -->
+      <div class="g2" style="margin-bottom:1rem">
+        <div class="proj-card" style="background:linear-gradient(135deg,var(--az),#2A5FA0)">
+          <h3>L10 — Total geral (incl. Abrir PATEC)</h3>
+          <div class="proj-val">4.516</div>
+          <div class="proj-sub">L3 + L4 + L5 + L6 + L7 + L8</div>
+        </div>
+        <div class="proj-card" style="background:linear-gradient(135deg,var(--vd),#0F6E56)">
+          <h3>L12 — Total somente PATEC</h3>
+          <div class="proj-val">2.682</div>
+          <div class="proj-sub">L3 + L4 + L5 + L6</div>
+        </div>
+      </div>
+
+      <!-- Linhas detalhadas -->
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t">Composição do L12 (PATEC)</div>
+          <div id="mapa-l12"></div>
+          <div style="margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:700;color:var(--az)">Total L12</span>
+            <span style="font-size:20px;font-weight:700;color:var(--azm)">2.682</span>
+          </div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Abrir PATEC (L7+L8) — fora do L12</div>
+          <div id="mapa-l78"></div>
+          <div style="margin-top:.875rem;padding-top:.875rem;border-top:1px solid var(--brd);display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:12px;font-weight:700;color:var(--az)">Total L7+L8</span>
+            <span style="font-size:20px;font-weight:700;color:var(--tx2)">1.834</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico L12 -->
+      <div class="cd">
+        <div class="cd-t">📉 Histórico L12 — variação dos 9 dias</div>
+        <canvas id="ch-l12" height="120"></canvas>
+      </div>
+
+      <!-- Tabela histórico -->
+      <div class="cd">
+        <div class="cd-t">Histórico diário — todas as linhas</div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Dia</th><th>L3</th><th>L4</th><th>L5</th><th>L6</th><th>L7</th><th>L8</th><th>L10</th><th>L12</th><th>Var.L12</th></tr></thead>
+            <tbody id="tb-hist-mapa"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ GRÁFICO DE MEDIÇÃO ══════════════════ -->
+    <div id="p-medicao" class="page">
+      <div class="kgrid">
+        <div class="kc"><div class="kc-l">Programado acumulado</div><div class="kc-v" style="color:var(--az)">900</div><div class="kc-s">10 × 90/dia</div></div>
+        <div class="kc warn"><div class="kc-l">Realizado acumulado</div><div class="kc-v">743</div><div class="kc-s">82,6% da meta</div></div>
+        <div class="kc warn"><div class="kc-l">Gap</div><div class="kc-v">−157</div><div class="kc-s">abaixo do programado</div></div>
+        <div class="kc"><div class="kc-l">Saídas acumuladas</div><div class="kc-v" style="color:var(--az)">439</div></div>
+        <div class="kc"><div class="kc-l">Dias registrados</div><div class="kc-v" style="color:var(--az)">10 / 22</div></div>
+        <div class="kc warn"><div class="kc-l">Meta necessária</div><div class="kc-v">103/dia</div><div class="kc-s">12 dias restantes</div></div>
+      </div>
+
+      <div class="al al-a">⚠ Ritmo atual 74/dia · Projeção: 1.631 itens ao fim do ciclo · Para fechar em 100% precisa de 103/dia</div>
+
+      <div class="g24">
+        <div class="cd">
+          <div class="cd-t">Acumulado — Programado × Realizado (+ projeção)</div>
+          <canvas id="ch-med-acum" height="160"></canvas>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Produção diária</div>
+          <canvas id="ch-med-bar" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="cd">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:8px">
+          <div class="cd-t" style="margin:0">Tabela completa — 22 dias úteis</div>
+          <button class="btn btn-s" onclick="exportMedicao()">💾 Exportar Excel</button>
+        </div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Dia</th><th>Data</th><th>Program.</th><th>Realizado</th><th>Acum.Prog.</th><th>Acum.Real.</th><th>Gap</th><th>%</th><th>Saídas</th></tr></thead>
+            <tbody id="tb-medicao"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ POR COLABORADOR ══════════════════ -->
+    <div id="p-colab" class="page">
+      <div class="stabs" id="colab-tabs">
+        <button class="stab active" onclick="selColab('André',this)">André</button>
+        <button class="stab" onclick="selColab('Aline',this)">Aline</button>
+        <button class="stab" onclick="selColab('Lory',this)">Lory</button>
+        <button class="stab" onclick="selColab('Ludy',this)">Ludy</button>
+        <button class="stab" onclick="selColab('Wanessa',this)">Wanessa</button>
+      </div>
+      <div class="kgrid" id="kpi-colab"></div>
+      <div class="g24">
+        <div class="cd">
+          <div class="cd-t" id="colab-chart-title">Produção diária — André</div>
+          <canvas id="ch-colab" height="160"></canvas>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Distribuição por linha</div>
+          <div id="colab-linhas"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ VALIDADE ══════════════════ -->
+    <div id="p-validade" class="page">
+      <div class="al al-b">ℹ Regra: <strong>≤ 59 dias = dentro do prazo · 60–90 dias = próximo do vencimento · ≥ 91 dias = vencida</strong> · Cálculo: hoje − DATA_ENCERRAMENTO_OPORTUNIDADE (col AK do Level Board)</div>
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t">G1 — Analisar PATEC Fin. + PATEC s/fornec. + Cancelado (L3+L5+L6)</div>
+          <div style="position:relative;width:160px;height:160px;margin:0 auto 1rem"><canvas id="rc1"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--az)">1.467</div><div style="font-size:9px;color:var(--tx2)">itens</div></div></div>
+          <div id="rc1-leg"></div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">G2 — Aguardar PATEC ser Finalizado (L4)</div>
+          <div style="position:relative;width:160px;height:160px;margin:0 auto 1rem"><canvas id="rc2"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--az)">1.215</div><div style="font-size:9px;color:var(--tx2)">itens</div></div></div>
+          <div id="rc2-leg"></div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">G3 — Abrir PATEC Idêntico Não + Grupo Mercadoria (L7+L8)</div>
+          <div style="position:relative;width:160px;height:160px;margin:0 auto 1rem"><canvas id="rc3"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--az)">1.834</div><div style="font-size:9px;color:var(--tx2)">itens</div></div></div>
+          <div id="rc3-leg"></div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">G4 — Consolidado G1+G2 = L3+L4+L5+L6 (L12)</div>
+          <div style="position:relative;width:160px;height:160px;margin:0 auto 1rem"><canvas id="rc4"></canvas><div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center"><div style="font-size:20px;font-weight:700;color:var(--az)">2.682</div><div style="font-size:9px;color:var(--tx2)">itens</div></div></div>
+          <div id="rc4-leg"></div>
+        </div>
+      </div>
+
+      <div class="cd">
+        <div class="cd-t">SLA máximo por fila (Level Board)</div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Linha MAPA</th><th>Fila Level Board</th><th>Maior SLA</th><th>Total itens</th><th>% Fora prazo</th><th>Status</th></tr></thead>
+            <tbody id="tb-sla"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ct -->
+</main>
+
+<script>
+// ════════════════════════════════════════════
+// DADOS REAIS — Ciclo Maio 2026
+// ════════════════════════════════════════════
+const PROD  = [79,90,93,46,70,64,131,88,56,26];
+const SAIDA = [55,44,80,27,58,38,35,54,18,30];
+const DATAS = ['01/mai','02/mai','05/mai','06/mai','07/mai','08/mai','09/mai','12/mai','13/mai','14/mai'];
+const DATAS_FULL = ['01/mai','02/mai','05/mai','06/mai','07/mai','08/mai','09/mai','12/mai','13/mai','14/mai','15/mai','16/mai','19/mai','20/mai','21/mai','22/mai','23/mai','26/mai','27/mai','28/mai','29/mai','30/mai'];
+const META = 90;
+const DIAS_UTEIS = 22;
+const HOJE = new Date();
+
+const COLABS_PROD = {
+  André:  [26,0,0,0,0,0,0,26,0,0],
+  Aline:  [0,0,0,0,0,0,0,0,0,0],
+  Lory:   [21,35,35,8,19,29,46,40,20,0],
+  Ludy:   [17,8,3,0,8,16,52,6,8,10],
+  Wanessa:[0,0,0,0,0,0,0,0,0,0],
+};
+
+const L = {
+  3:[727,712,722,679,711,703,679,687,592],
+  4:[218,228,241,234,190,189,285,347,359],
+  5:[5,6,6,0,22,9,8,5,8],
+  6:[0,1,1,0,0,0,0,1,0],
+  7:[190,191,273,301,303,320,278,233,168],
+  8:[154,148,185,218,216,252,221,216,153],
+};
+
+const ROSCAS = [
+  {id:'rc1',total:1467,dentro:1285,prox:157,venc:19,sem:6},
+  {id:'rc2',total:1215,dentro:1215,prox:0,venc:0,sem:0},
+  {id:'rc3',total:1834,dentro:82,prox:53,venc:25,sem:1674},
+  {id:'rc4',total:2682,dentro:2500,prox:157,venc:19,sem:6},
+];
+
+const SLA_TABLE = [
+  {linha:'L3',fila:'Analisar PATEC Finalizado',sla:174,total:1019,fora:0,pct:0},
+  {linha:'L4',fila:'Aguardar PATEC ser Finalizado',sla:136,total:1215,fora:0,pct:0},
+  {linha:'L5',fila:'PATEC s/ fornecedores aprovados',sla:122,total:43,fora:0,pct:0},
+  {linha:'L6',fila:'Analisar PATEC Cancelado',sla:297,total:405,fora:44,pct:10.9},
+  {linha:'L7',fila:'Abrir PATEC Idêntico Não',sla:126,total:1694,fora:78,pct:4.6},
+  {linha:'L8',fila:'Abrir PATEC Grupo Mercadoria Obrig.',sla:154,total:140,fora:25,pct:17.9},
+];
+
+// ── INIT ──
+const dtStr = HOJE.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+document.getElementById('tdt').textContent = dtStr;
+document.getElementById('ref-data').textContent = '14/05/2026';
+
+// ── SIDEBAR ──
+function go(id, el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-it').forEach(i=>i.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+  const titles={visao:'Visão Geral',mapa:'Mapa — L10 / L12',medicao:'Gráfico de Medição',colab:'Por Colaborador',validade:'Validade Oportunidades'};
+  document.getElementById('ttl').textContent = titles[id]||id;
+  if(id==='medicao') renderMedicao();
+  if(id==='mapa')    renderMapa();
+  if(id==='colab')   selColab('André', document.querySelector('#colab-tabs .stab'));
+  if(id==='validade') renderValidade();
+  document.getElementById('sb').classList.remove('mob-open');
+}
+
+// ── UTILS ──
+let charts = {};
+function mkChart(id,type,data,opts={}){
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id),{
+    type, data,
+    options:{
+      responsive:true,
+      plugins:{legend:{display:opts.legend??false},...(opts.plugins||{})},
+      scales:opts.scales??{},
+      ...(opts.extra||{})
+    }
+  });
+  return charts[id];
+}
+function pct(v,base){ return base>0?Math.round(v/base*100):0; }
+function pill(txt,cls){ return `<span class="pl ${cls}">${txt}</span>`; }
+function perfPill(val){
+  const p=pct(val,META);
+  if(p>=100) return pill(`${p}%`,'pl-ok');
+  if(p>=80)  return pill(`${p}%`,'pl-w');
+  return pill(`${p}%`,'pl-b');
+}
+function exportSheet(data, sheetName, filename){
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  XLSX.writeFile(wb,filename);
+}
+
+// ════════════════════════════════
+// RENDER VISÃO GERAL
+// ════════════════════════════════
+(function renderVisao(){
+  // Acumulados
+  const acProg = DATAS_FULL.map((_,i)=>META*(i+1));
+  const acReal = [];
+  let s=0; PROD.forEach(v=>{s+=v; acReal.push(s);});
+  // Projeção (ritmo atual)
+  const rate = 743/10;
+  const proj  = acReal.map(v=>v); // cópia dos 10 primeiros
+  for(let i=10;i<DIAS_UTEIS;i++) proj.push(Math.round(743+(i-9)*rate));
+
+  mkChart('ch-acum','line',{
+    labels: DATAS_FULL,
+    datasets:[
+      {label:'Programado',data:acProg,borderColor:'#3266AD',backgroundColor:'rgba(50,102,173,.07)',borderWidth:2,pointRadius:0,fill:true,tension:.1},
+      {label:'Realizado', data:[...acReal,...Array(12).fill(null)],borderColor:'#1D9E75',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:false},
+      {label:'Projeção',  data:proj,borderColor:'#BA7517',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+    ]
+  },{legend:true,scales:{
+    y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},
+    x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:8}}
+  }});
+
+  // Barras diárias
+  const bcolors = PROD.map(v=>v>=META?'#1D9E75':v>=META*.8?'#EF9F27':'#E24B4A');
+  mkChart('ch-diario','bar',{
+    labels: DATAS,
+    datasets:[
+      {label:'Realizado',data:PROD,backgroundColor:bcolors,borderRadius:4},
+      {label:'Meta (90)', data:Array(10).fill(META),type:'line',borderColor:'#3266AD',borderWidth:1.5,borderDash:[5,3],pointRadius:0},
+    ]
+  },{legend:true,scales:{
+    y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}},min:0},
+    x:{grid:{display:false},ticks:{font:{size:9}}}
+  }});
+
+  // Barras colaborador
+  const colabData = Object.entries(COLABS_PROD).map(([n,v])=>{
+    const dias = v.filter(x=>x>0).length;
+    const tot  = v.reduce((a,b)=>a+b,0);
+    const med  = dias>0?Math.round(tot/dias):0;
+    return {n,med,dias,tot};
+  });
+  document.getElementById('colab-bars').innerHTML = colabData.map(({n,med,dias})=>{
+    const p = pct(med,META);
+    const col = p>=100?'var(--vd)':p>=80?'var(--am)':'var(--vm)';
+    return `<div class="colab-row">
+      <span class="colab-nome">${n}</span>
+      <div class="colab-bar-wrap">
+        <div class="colab-bar"><div class="colab-fill" style="width:${Math.min(p,120)}%;background:${col}"></div></div>
+        <div class="colab-meta">${dias} dia${dias!==1?'s':''} registrado${dias!==1?'s':''}</div>
+      </div>
+      <span class="colab-num" style="color:${col}">${med}</span>
+      <span class="colab-pct" style="color:${col}">${p}%</span>
+    </div>`;
+  }).join('');
+
+  // Mapa mini
+  const mapaLinhas = [
+    {lnum:'L3',nome:'Analisar PATEC Fin.',val:592,max:727,cor:'#3266AD'},
+    {lnum:'L4',nome:'Aguardar PATEC',val:359,max:285,cor:'#3266AD'},
+    {lnum:'L5',nome:'PATEC s/ forn.',val:8,max:22,cor:'#1D9E75'},
+    {lnum:'L6',nome:'PATEC Cancelado',val:0,max:1,cor:'#1D9E75'},
+    {lnum:'L7',nome:'Abrir PATEC Idêntico',val:168,max:320,cor:'#BA7517'},
+    {lnum:'L8',nome:'Abrir PATEC Grupo',val:153,max:252,cor:'#BA7517'},
+  ];
+  document.getElementById('mapa-mini').innerHTML = mapaLinhas.map(({lnum,nome,val,max,cor})=>{
+    const p = max>0?Math.round(val/max*100):0;
+    return `<div class="mapa-row">
+      <span class="lnum">${lnum}</span>
+      <div style="flex:1">
+        <div class="mapa-nome">${nome}</div>
+        <div class="mapa-bar"><div class="mapa-fill" style="width:${Math.min(p,100)}%;background:${cor}"></div></div>
+      </div>
+      <span class="mapa-val">${val.toLocaleString('pt-BR')}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('mapa-mini').innerHTML += `
+    <div style="margin-top:.75rem;padding-top:.75rem;border-top:2px solid var(--azc);display:flex;justify-content:space-between">
+      <span style="font-size:11px;font-weight:700">L12 (PATEC)</span>
+      <span style="font-size:18px;font-weight:700;color:var(--azm)">2.682</span>
+    </div>`;
+
+  // Tabela resumo
+  let ap=0,ar=0;
+  document.getElementById('tb-resumo').innerHTML = PROD.map((v,i)=>{
+    ap+=META; ar+=v; const g=ar-ap;
+    return `<tr>
+      <td>${i+1}</td><td>${DATAS[i]}</td>
+      <td>${META}</td>
+      <td style="font-weight:600;color:${v>=META?'var(--vd)':v>=META*.8?'var(--am)':'var(--vm)'}">${v}</td>
+      <td>${ap}</td><td>${ar}</td>
+      <td style="font-weight:600;color:${g<0?'var(--vm)':'var(--vd)'}">${g>0?'+':''}${g}</td>
+      <td>${perfPill(v)}</td>
+      <td>${SAIDA[i]}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tf-resumo').innerHTML = `<tr>
+    <td colspan="2">TOTAL / MÉDIA</td>
+    <td>${META*10}</td><td style="font-weight:700">743</td>
+    <td>${META*10}</td><td style="font-weight:700">743</td>
+    <td style="font-weight:700;color:var(--vm)">−157</td>
+    <td>${perfPill(74)}</td>
+    <td style="font-weight:700">439</td>
+  </tr>`;
+})();
+
+// ════════════════════════════════
+// RENDER MEDIÇÃO
+// ════════════════════════════════
+function renderMedicao(){
+  const acProg=DATAS_FULL.map((_,i)=>META*(i+1));
+  const acReal=[]; let s=0; PROD.forEach(v=>{s+=v;acReal.push(s);});
+  const rate=743/10;
+  const proj=acReal.slice();
+  for(let i=10;i<DIAS_UTEIS;i++) proj.push(Math.round(743+(i-9)*rate));
+
+  mkChart('ch-med-acum','line',{
+    labels:DATAS_FULL,
+    datasets:[
+      {label:'Programado',data:acProg,borderColor:'#3266AD',borderWidth:2,pointRadius:0,fill:false},
+      {label:'Realizado',data:[...acReal,...Array(12).fill(null)],borderColor:'#1D9E75',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#1D9E75',fill:false},
+      {label:'Projeção',data:proj,borderColor:'#BA7517',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false},
+    ]
+  },{legend:true,scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9},maxTicksLimit:8}}}});
+
+  const bc=PROD.map(v=>v>=META?'#1D9E75':v>=META*.8?'#EF9F27':'#E24B4A');
+  mkChart('ch-med-bar','bar',{
+    labels:DATAS,
+    datasets:[{label:'Realizado',data:PROD,backgroundColor:bc,borderRadius:4}]
+  },{scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}},min:0},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  let ap2=0,ar2=0;
+  document.getElementById('tb-medicao').innerHTML=DATAS_FULL.map((dt,i)=>{
+    const v=PROD[i]??0; const s=SAIDA[i]??0;
+    ap2+=META; if(v>0)ar2+=v;
+    const g=ar2-ap2; const p=v>0?pct(v,META):0;
+    if(i<10) return`<tr><td>${i+1}</td><td>${dt}</td><td>${META}</td><td style="font-weight:600;color:${v>=META?'var(--vd)':v>=META*.8?'var(--am)':'var(--vm)'}">${v}</td><td>${ap2}</td><td>${ar2}</td><td style="color:${g<0?'var(--vm)':'var(--vd)'};font-weight:600">${g>0?'+':''}${g}</td><td>${perfPill(v)}</td><td>${s||'—'}</td></tr>`;
+    return`<tr style="opacity:.5"><td>${i+1}</td><td>${dt}</td><td>${META}</td><td>—</td><td>${ap2}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// RENDER MAPA
+// ════════════════════════════════
+function renderMapa(){
+  const mapaL12=[
+    {lnum:'L3',nome:'Analisar PATEC Finalizado',val:592,cor:'#3266AD'},
+    {lnum:'L4',nome:'Aguardar PATEC ser Finalizado',val:359,cor:'#3266AD'},
+    {lnum:'L5',nome:'PATEC Finalizado sem fornecedores',val:8,cor:'#1D9E75'},
+    {lnum:'L6',nome:'Analisar PATEC Cancelado',val:0,cor:'#BA7517'},
+  ];
+  const mapaL78=[
+    {lnum:'L7',nome:'Abrir PATEC Idêntico Não',val:168,cor:'#BA7517'},
+    {lnum:'L8',nome:'Abrir PATEC Grupo Mercadoria Obrig.',val:153,cor:'#BA7517'},
+  ];
+  const mapaRow=({lnum,nome,val,cor},total)=>{
+    const p=total>0?Math.round(val/total*100):0;
+    return`<div class="mapa-row"><span class="lnum">${lnum}</span><div style="flex:1"><div class="mapa-nome">${nome}</div><div class="mapa-bar"><div class="mapa-fill" style="width:${p}%;background:${cor}"></div></div></div><span class="mapa-val">${val.toLocaleString('pt-BR')}</span></div>`;
+  };
+  document.getElementById('mapa-l12').innerHTML=mapaL12.map(r=>mapaRow(r,592+359+8+0)).join('');
+  document.getElementById('mapa-l78').innerHTML=mapaL78.map(r=>mapaRow(r,168+153)).join('');
+
+  // Gráfico histórico L12
+  const l12hist=L[3].map((_,i)=>L[3][i]+L[4][i]+L[5][i]+L[6][i]);
+  const l10hist=l12hist.map((v,i)=>v+L[7][i]+L[8][i]);
+  const dHist=Array.from({length:9},(_,i)=>'Dia '+(i+1));
+  mkChart('ch-l12','line',{labels:dHist,datasets:[
+    {label:'L10',data:l10hist,borderColor:'#3266AD',borderWidth:2,pointRadius:3,fill:false,tension:.1},
+    {label:'L12',data:l12hist,borderColor:'#1D9E75',borderWidth:2.5,pointRadius:3,fill:false,tension:.1},
+    {label:'L3', data:L[3],borderColor:'#BA7517',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+    {label:'L4', data:L[4],borderColor:'#E24B4A',borderWidth:1.5,borderDash:[4,3],pointRadius:2,fill:false},
+  ]},{legend:true,scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}}},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  // Tabela histórico
+  document.getElementById('tb-hist-mapa').innerHTML=L[3].map((_,i)=>{
+    const l10=L[3][i]+L[4][i]+L[5][i]+L[6][i]+L[7][i]+L[8][i];
+    const l12=L[3][i]+L[4][i]+L[5][i]+L[6][i];
+    const prev_l12=i>0?L[3][i-1]+L[4][i-1]+L[5][i-1]+L[6][i-1]:l12;
+    const dif=l12-prev_l12;
+    return`<tr>
+      <td>${i+1}</td><td>${L[3][i]}</td><td>${L[4][i]}</td><td>${L[5][i]}</td>
+      <td>${L[6][i]}</td><td>${L[7][i]}</td><td>${L[8][i]}</td>
+      <td style="font-weight:600">${l10.toLocaleString('pt-BR')}</td>
+      <td style="font-weight:600;color:var(--azm)">${l12.toLocaleString('pt-BR')}</td>
+      <td style="font-weight:600;color:${dif>0?'var(--vd)':dif<0?'var(--vm)':'var(--tx2)'}">${i>0?(dif>0?'▲ +':'▼ ')+Math.abs(dif):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// RENDER POR COLABORADOR
+// ════════════════════════════════
+function selColab(nome, btn){
+  document.querySelectorAll('#colab-tabs .stab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const v = COLABS_PROD[nome] || Array(10).fill(0);
+  const dias = v.filter(x=>x>0).length;
+  const tot  = v.reduce((a,b)=>a+b,0);
+  const med  = dias>0?Math.round(tot/dias):0;
+  const max  = Math.max(...v);
+
+  document.getElementById('kpi-colab').innerHTML=`
+    <div class="kc"><div class="kc-l">Dias registrados</div><div class="kc-v" style="color:var(--az)">${dias}</div><div class="kc-s">de 10 registrados</div></div>
+    <div class="kc ok"><div class="kc-l">Total analisados</div><div class="kc-v">${tot}</div></div>
+    <div class="kc ${med>=META?'ok':med>=META*.8?'warn':'bad'}"><div class="kc-l">Média diária</div><div class="kc-v">${med}</div><div class="kc-s">meta: ${META}/dia</div></div>
+    <div class="kc"><div class="kc-l">Melhor dia</div><div class="kc-v" style="color:var(--az)">${max}</div></div>
+  `;
+
+  document.getElementById('colab-chart-title').textContent=`Produção diária — ${nome}`;
+  const bc=v.map(x=>x>=META?'#1D9E75':x>=META*.8?'#EF9F27':x>0?'#E24B4A':'#E0E0E0');
+  mkChart('ch-colab','bar',{
+    labels:DATAS,
+    datasets:[
+      {label:'Realizado',data:v,backgroundColor:bc,borderRadius:4},
+      {label:'Meta (90)',data:Array(10).fill(META),type:'line',borderColor:'#3266AD',borderWidth:1.5,borderDash:[5,3],pointRadius:0},
+    ]
+  },{legend:true,scales:{y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10}},min:0},x:{grid:{display:false},ticks:{font:{size:9}}}}});
+
+  // Linhas (só para histórico)
+  const linhas=['Analisados','Tratativa','Fornecedor','Requisitante','MDG','Val.Thiago','XGL','Republicação','Pedidos','Devoluções'];
+  document.getElementById('colab-linhas').innerHTML=linhas.map((l,i)=>{
+    const val=i===0?tot:0; // só temos dado de analisados por colaborador
+    const p=tot>0?Math.round(val/tot*100):0;
+    return`<div class="mapa-row"><span style="font-size:11px;flex:1">${l}</span><div class="mapa-bar" style="width:80px;display:inline-block;margin:0 8px;height:5px;background:#eee;border-radius:3px;vertical-align:middle"><div class="mapa-fill" style="width:${p}%;background:var(--azm)"></div></div><span style="font-size:12px;font-weight:600;width:40px;text-align:right">${i===0?tot:'—'}</span></div>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// RENDER VALIDADE
+// ════════════════════════════════
+function renderValidade(){
+  const rcCharts={};
+  ROSCAS.forEach(r=>{
+    const el=document.getElementById(r.id);if(!el)return;
+    if(rcCharts[r.id])rcCharts[r.id].destroy();
+    const data=[r.dentro,r.prox,r.venc].concat(r.sem>0?[r.sem]:[]);
+    const colors=['#1D9E75','#EF9F27','#E24B4A'].concat(r.sem>0?['#C4C4C4']:[]);
+    new Chart(el,{type:'doughnut',data:{datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},options:{responsive:false,cutout:'63%',plugins:{legend:{display:false}}}});
+    // legenda
+    const legEl=document.getElementById(r.id+'-leg');
+    if(legEl) legEl.innerHTML=`
+      <div style="font-size:10px">
+        <div class="mapa-row" style="padding:4px 0"><span class="rl-d" style="width:8px;height:8px;border-radius:2px;background:#1D9E75;flex-shrink:0;display:inline-block;margin-right:5px"></span><span style="flex:1;color:var(--tx2)">Dentro do prazo</span><strong style="color:var(--vd)">${r.dentro.toLocaleString('pt-BR')}</strong></div>
+        <div class="mapa-row" style="padding:4px 0"><span style="width:8px;height:8px;border-radius:2px;background:#EF9F27;flex-shrink:0;display:inline-block;margin-right:5px"></span><span style="flex:1;color:var(--tx2)">Próx. vencimento</span><strong style="color:var(--am)">${r.prox.toLocaleString('pt-BR')}</strong></div>
+        <div class="mapa-row" style="padding:4px 0"><span style="width:8px;height:8px;border-radius:2px;background:#E24B4A;flex-shrink:0;display:inline-block;margin-right:5px"></span><span style="flex:1;color:var(--tx2)">Vencida</span><strong style="color:var(--vm)">${r.venc.toLocaleString('pt-BR')}</strong></div>
+        ${r.sem>0?`<div class="mapa-row" style="padding:4px 0"><span style="width:8px;height:8px;border-radius:2px;background:#C4C4C4;flex-shrink:0;display:inline-block;margin-right:5px"></span><span style="flex:1;color:var(--tx2)">Sem data</span><strong>${r.sem.toLocaleString('pt-BR')}</strong></div>`:''}
+      </div>`;
+  });
+
+  // SLA tabela
+  document.getElementById('tb-sla').innerHTML=SLA_TABLE.map(r=>{
+    const cls=r.sla>=200?'pl-b':r.sla>=100?'pl-w':'pl-ok';
+    const pfora=r.pct>10?'pl-b':r.pct>0?'pl-w':'pl-ok';
+    return`<tr>
+      <td><span class="lnum">${r.linha}</span></td>
+      <td style="font-size:11px">${r.fila}</td>
+      <td style="font-weight:700;color:${r.sla>=200?'var(--vm)':r.sla>=100?'var(--am)':'var(--vd)'}"><span class="pl ${cls}">${r.sla} dias</span></td>
+      <td>${r.total.toLocaleString('pt-BR')}</td>
+      <td><span class="pl ${pfora}">${r.pct.toFixed(1)}%</span></td>
+      <td>${r.fora>0?`<span class="pl pl-b">${r.fora} críticos</span>`:`<span class="pl pl-ok">OK</span>`}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════
+// EXPORTAÇÕES
+// ════════════════════════════════
+function exportResumo(){
+  const hd=['Dia','Data','Programado','Realizado','Acum.Prog.','Acum.Real.','Gap','%','Saídas'];
+  let ap=0,ar=0;
+  const rows=PROD.map((v,i)=>{ap+=META;ar+=v;return[i+1,DATAS[i],META,v,ap,ar,ar-ap,pct(v,META)+'%',SAIDA[i]];});
+  exportSheet([hd,...rows],'Resumo',`PATEC_VisaoGeral_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+}
+function exportMedicao(){
+  const hd=['Dia','Data','Programado','Realizado','Acum.Prog.','Acum.Real.','Gap','%','Saídas'];
+  let ap=0,ar=0;
+  const rows=DATAS_FULL.map((dt,i)=>{
+    const v=PROD[i]??0;ap+=META;if(v>0)ar+=v;
+    return[i+1,dt,META,v||'',ap,v>0?ar:'',v>0?ar-ap:'',v>0?pct(v,META)+'%':'',SAIDA[i]??''];
+  });
+  exportSheet([hd,...rows],'Medição',`PATEC_Medicao_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+}
+
+// ── INIT RENDERS ──
+renderValidade();
+renderMapa();
+renderMedicao();
+selColab('André',null);
+</script>
+</body>
+</html>

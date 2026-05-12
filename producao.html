@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PATEC — Produção da Equipe</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --az:#1A3A6B;--azm:#3266AD;--azc:#E6F1FB;
+  --vd:#1D9E75;--vdc:#EAF3DE;
+  --am:#BA7517;--amc:#FAEEDA;
+  --vm:#E24B4A;--vmc:#FCEBEB;
+  --bg:#F4F6FA;--brd:#E0E0E0;--cin:#F7F7F7;
+  --tx:#1A1A1A;--tx2:#666;--sw:220px;
+}
+body{font-family:Arial,sans-serif;font-size:14px;color:var(--tx);background:var(--bg);display:flex;min-height:100vh}
+
+/* ── SIDEBAR ── */
+#sb{width:var(--sw);background:var(--az);min-height:100vh;position:fixed;top:0;left:0;bottom:0;z-index:100;display:flex;flex-direction:column}
+.sb-logo{padding:1.25rem 1rem;border-bottom:1px solid rgba(255,255,255,.12)}
+.sb-logo h1{font-size:15px;font-weight:700;color:#fff;letter-spacing:.3px}
+.sb-logo p{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sb-sec{padding:.75rem 1rem .2rem;font-size:9px;font-weight:700;color:rgba(255,255,255,.35);letter-spacing:1px;text-transform:uppercase}
+.sb-it{display:flex;align-items:center;gap:8px;padding:.6rem 1rem;cursor:pointer;font-size:12px;color:rgba(255,255,255,.65);border-left:3px solid transparent;transition:all .15s;user-select:none}
+.sb-it:hover{background:rgba(255,255,255,.08);color:#fff}
+.sb-it.active{background:rgba(255,255,255,.12);color:#fff;border-left-color:var(--vd)}
+.sb-badge{margin-left:auto;font-size:9px;background:rgba(186,117,23,.35);color:#FAC775;padding:1px 6px;border-radius:8px}
+
+/* ── MAIN ── */
+#mn{margin-left:var(--sw);flex:1;display:flex;flex-direction:column}
+.topbar{background:#fff;border-bottom:1px solid var(--brd);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-l h2{font-size:15px;font-weight:700;color:var(--az)}
+.topbar-l p{font-size:11px;color:var(--tx2);margin-top:1px}
+.top-dt{font-size:11px;color:var(--tx2);background:var(--cin);padding:4px 10px;border-radius:6px;white-space:nowrap}
+.ct{padding:1.5rem;flex:1}
+
+/* ── PÁGINAS ── */
+.page{display:none}.page.active{display:block}
+
+/* ── SUBTABS ── */
+.stabs{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap}
+.stab{padding:6px 16px;font-size:12px;border:1px solid var(--brd);border-radius:20px;background:#fff;cursor:pointer;color:var(--tx2);transition:all .15s;font-weight:500}
+.stab.active{background:var(--azm);border-color:var(--azm);color:#fff;font-weight:600}
+
+/* ── CARDS ── */
+.cd{background:#fff;border-radius:10px;padding:1.25rem;border:1px solid var(--brd);margin-bottom:1rem}
+.cd-t{font-size:13px;font-weight:700;color:var(--az);margin-bottom:1rem}
+
+/* ── KPI ── */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.kc{background:#fff;border-radius:10px;padding:1rem 1.1rem;border:1px solid var(--brd);border-top:3px solid var(--azm)}
+.kc.ok{border-top-color:var(--vd)}.kc.warn{border-top-color:var(--am)}.kc.bad{border-top-color:var(--vm)}
+.kc-l{font-size:10px;color:var(--tx2);margin-bottom:5px;line-height:1.4}
+.kc-v{font-size:22px;font-weight:700;color:var(--az)}
+.kc.ok .kc-v{color:var(--vd)}.kc.warn .kc-v{color:var(--am)}.kc.bad .kc-v{color:var(--vm)}
+.kc-s{font-size:10px;color:var(--tx2);margin-top:2px}
+
+/* ── ALERTA ── */
+.al{border-radius:7px;padding:.65rem 1rem;margin-bottom:1rem;font-size:12px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.al-v{background:var(--vdc);color:#3B6D11;border-left:3px solid var(--vd)}
+.al-a{background:var(--amc);color:#854F0B;border-left:3px solid var(--am)}
+.al-b{background:var(--azc);color:#0C447C;border-left:3px solid var(--azm)}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto;border-radius:8px;border:1px solid var(--brd);max-height:420px;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{position:sticky;top:0;background:#F0F4FA;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;color:var(--tx2);border-bottom:1px solid var(--brd);white-space:nowrap;z-index:1}
+td{padding:7px 10px;border-bottom:1px solid #F5F5F5;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFF}
+tfoot td{background:#F0F4FA;font-weight:700;position:sticky;bottom:0;border-top:1px solid var(--brd)}
+
+/* ── PILL ── */
+.pl{display:inline-block;padding:2px 9px;border-radius:8px;font-size:10px;font-weight:600}
+.pl-ok{background:var(--vdc);color:#3B6D11}
+.pl-az{background:var(--azc);color:#0C447C}
+.pl-g{background:var(--cin);color:var(--tx2)}
+.pl-f{background:#F0F0F0;color:#444;border:1px solid var(--brd)}
+
+/* ── INPUTS ── */
+input,select{font-family:Arial,sans-serif;font-size:13px;padding:7px 11px;border:1px solid var(--brd);border-radius:6px;background:#fff;color:var(--tx);width:100%}
+input:focus,select:focus{outline:none;border-color:var(--azm);box-shadow:0 0 0 2px rgba(50,102,173,.12)}
+input[type=number]{text-align:center}
+input[type=number]::-webkit-inner-spin-button{opacity:.5}
+.field-wrap{display:flex;flex-direction:column;gap:3px}
+.field-label{font-size:11px;color:var(--tx2);font-weight:500}
+
+/* ── GRID FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.25rem}
+
+/* ── LINHAS DE PRODUÇÃO ── */
+.prod-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:1.25rem}
+.prod-row{display:flex;align-items:center;gap:10px;background:var(--cin);padding:8px 12px;border-radius:7px;border:1px solid var(--brd)}
+.prod-row label{font-size:12px;color:var(--tx);flex:1;line-height:1.3}
+.prod-row input{width:76px;flex-shrink:0;padding:6px 8px;font-size:13px;font-weight:700;color:var(--azm)}
+
+/* ── BOTÕES ── */
+.btn{padding:8px 18px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.btn-p{background:var(--azm);color:#fff}.btn-p:hover{background:var(--az)}
+.btn-g{background:var(--vd);color:#fff}.btn-g:hover{background:#0F6E56}
+.btn-s{background:#fff;color:var(--tx);border:1px solid var(--brd)}.btn-s:hover{background:var(--cin)}
+.btn-r{background:var(--vmc);color:var(--vm);border:1px solid #f5b8b8}.btn-r:hover{background:#f8d0d0}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* ── PCP LOCK ── */
+.lock-box{text-align:center;padding:2.5rem 1.5rem}
+
+/* ── BADGE PRESENÇA ── */
+.pres-sel{display:flex;gap:6px;flex-wrap:wrap}
+.pres-opt{padding:6px 14px;border-radius:20px;border:1px solid var(--brd);background:#fff;cursor:pointer;font-size:12px;color:var(--tx2);transition:all .15s;user-select:none}
+.pres-opt.sel-P{background:var(--azc);border-color:var(--azm);color:#0C447C;font-weight:600}
+.pres-opt.sel-H{background:#EFF8F5;border-color:var(--vd);color:#3B6D11;font-weight:600}
+.pres-opt.sel-F{background:#FFF3E0;border-color:#CC6600;color:#884400;font-weight:600}
+
+/* ── BARRA DE PROGRESSO ── */
+.prog-bar{height:7px;background:#EEE;border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .4s}
+
+/* ── SEPARADOR ── */
+.divider{height:1px;background:var(--brd);margin:1.25rem 0}
+
+/* ── TOOLTIP TOTAL ── */
+.total-badge{font-size:20px;font-weight:700;color:var(--az);padding:4px 12px;background:var(--azc);border-radius:7px;border:1px solid rgba(50,102,173,.2)}
+
+@media(max-width:768px){
+  #sb{transform:translateX(-100%);transition:.25s}
+  #sb.mob-open{transform:translateX(0)}
+  #mn{margin-left:0}
+  .form-grid{grid-template-columns:1fr 1fr}
+  .prod-grid{grid-template-columns:1fr}
+  .g2{grid-template-columns:1fr !important}
+}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+
+/* hamburguer */
+#hbg{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--az);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:16px;cursor:pointer}
+@media(max-width:768px){#hbg{display:block}}
+</style>
+</head>
+<body>
+
+<button id="hbg" onclick="toggleSb()">☰</button>
+
+<!-- SIDEBAR -->
+<nav id="sb">
+  <div class="sb-logo">
+    <h1>PATEC</h1>
+    <p>Gestão de Compras — Produção</p>
+  </div>
+  <div class="sb-sec">Lançamento</div>
+  <div class="sb-it active" onclick="goPage('lancar',this)">✏️ Lançar Produção</div>
+  <div class="sb-sec">Visualização</div>
+  <div class="sb-it" onclick="goPage('equipe',this)">👥 Visão da Equipe</div>
+  <div class="sb-it" onclick="goPage('porcolab',this)">📊 Por Colaborador</div>
+  <div class="sb-it" onclick="goPage('porlinha',this)">📋 Por Linha</div>
+  <div class="sb-sec">Gestão</div>
+  <div class="sb-it" onclick="goPage('pcp',this)">🔒 Dados PCP</div>
+  <div class="sb-it" onclick="goPage('exportar',this)">💾 Exportar</div>
+  <div class="sb-sec">Sistema</div>
+  <div class="sb-it" style="opacity:.5;cursor:default">📈 Gráfico de Medição <span class="sb-badge">breve</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">📋 Detalhamento do Plano <span class="sb-badge">breve</span></div>
+  <div class="sb-it" style="opacity:.5;cursor:default">⬆ Upload MAPA <span class="sb-badge">breve</span></div>
+</nav>
+
+<!-- MAIN -->
+<main id="mn">
+  <div class="topbar">
+    <div class="topbar-l">
+      <h2 id="ttl">Lançar Produção</h2>
+      <p id="tsub">Ciclo Maio 2026 · 22 dias úteis · Meta 90 itens/dia</p>
+    </div>
+    <div class="top-dt" id="tdt"></div>
+  </div>
+
+  <div class="ct">
+
+    <!-- ══════ LANÇAR PRODUÇÃO ══════ -->
+    <div id="p-lancar" class="page active">
+      <div class="al al-b">ℹ Preencha sua produção diária. Todos os campos são opcionais — preencha apenas os que tiver lançado no dia.</div>
+
+      <!-- Seleção colaborador/presença/data -->
+      <div class="cd">
+        <div class="cd-t">Identificação</div>
+        <div class="form-grid">
+          <div class="field-wrap">
+            <span class="field-label">Colaborador</span>
+            <select id="sel-colab" onchange="updateHeader()">
+              <option value="André">André</option>
+              <option value="Aline">Aline</option>
+              <option value="Lory">Lory</option>
+              <option value="Ludy">Ludy</option>
+              <option value="Wanessa">Wanessa</option>
+            </select>
+          </div>
+          <div class="field-wrap">
+            <span class="field-label">Data de referência</span>
+            <input type="date" id="sel-data">
+          </div>
+          <div class="field-wrap">
+            <span class="field-label">Presença</span>
+            <div class="pres-sel" id="pres-sel">
+              <div class="pres-opt sel-P" onclick="selPres('Presencial',this)">🏢 Presencial</div>
+              <div class="pres-opt" onclick="selPres('Home Office',this)">🏠 Home Office</div>
+              <div class="pres-opt" onclick="selPres('Folga',this)">🌴 Folga</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linhas de produção -->
+      <div class="cd">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px">
+          <div class="cd-t" style="margin:0">Lançamento de produção — <span id="colab-display" style="color:var(--azm)">André</span></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:11px;color:var(--tx2)">Total itens analisados:</span>
+            <span class="total-badge" id="total-badge">0</span>
+          </div>
+        </div>
+
+        <div class="prod-grid">
+          <div class="prod-row">
+            <label>Itens Analisados<br><span style="font-size:10px;color:var(--tx2)">(novos)</span></label>
+            <input type="number" id="f0" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>Itens em Tratativa</label>
+            <input type="number" id="f1" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>Fornecedor</label>
+            <input type="number" id="f2" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>Requisitante</label>
+            <input type="number" id="f3" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>MDG</label>
+            <input type="number" id="f4" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>Validação Thiago</label>
+            <input type="number" id="f5" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>XGL</label>
+            <input type="number" id="f6" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>Republicação</label>
+            <input type="number" id="f7" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>RCs para Pedidos</label>
+            <input type="number" id="f8" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+          <div class="prod-row">
+            <label>RCs para Devoluções</label>
+            <input type="number" id="f9" min="0" placeholder="0" oninput="updateTotal()">
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-p" onclick="salvar()">✓ Salvar produção</button>
+          <button class="btn btn-s" onclick="limpar()">↺ Limpar campos</button>
+          <span id="msg-salvo" style="font-size:12px;color:var(--vd);font-weight:600;display:none">✓ Produção salva com sucesso!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ VISÃO DA EQUIPE ══════ -->
+    <div id="p-equipe" class="page">
+      <div class="stabs">
+        <button class="stab active" onclick="setEquipeTab('hoje',this)">Dia atual</button>
+        <button class="stab" onclick="setEquipeTab('acum',this)">Acumulado do ciclo</button>
+      </div>
+
+      <!-- KPIs do dia -->
+      <div class="kgrid" id="kpi-equipe"></div>
+
+      <div id="eq-hoje">
+        <div class="cd">
+          <div class="cd-t">👥 Visão da equipe — <span id="eq-data-label"></span></div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Presença</th>
+                  <th>Analisados</th>
+                  <th>Tratativa</th>
+                  <th>Fornecedor</th>
+                  <th>Requisitante</th>
+                  <th>MDG</th>
+                  <th>Val.Thiago</th>
+                  <th>XGL</th>
+                  <th>Rep.</th>
+                  <th>Pedidos</th>
+                  <th>Dev.</th>
+                  <th>Total</th>
+                  <th>% Meta</th>
+                </tr>
+              </thead>
+              <tbody id="eq-tb-hoje"></tbody>
+              <tfoot id="eq-tfoot-hoje"></tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="eq-acum" style="display:none">
+        <div class="cd">
+          <div class="cd-t">📊 Acumulado do ciclo — todos os registros</div>
+          <div class="tw">
+            <table>
+              <thead>
+                <tr>
+                  <th>Colaborador</th>
+                  <th>Dias</th>
+                  <th>Analisados</th>
+                  <th>Tratativa</th>
+                  <th>Fornecedor</th>
+                  <th>Requisitante</th>
+                  <th>MDG</th>
+                  <th>Val.Thiago</th>
+                  <th>XGL</th>
+                  <th>Rep.</th>
+                  <th>Pedidos</th>
+                  <th>Dev.</th>
+                  <th>Total</th>
+                  <th>Média/dia</th>
+                </tr>
+              </thead>
+              <tbody id="eq-tb-acum"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ POR COLABORADOR ══════ -->
+    <div id="p-porcolab" class="page">
+      <div style="margin-bottom:1rem">
+        <label class="field-label" style="display:block;margin-bottom:5px">Selecionar colaborador</label>
+        <div class="stabs" id="colab-tabs">
+          <button class="stab active" onclick="setColab('André',this)">André</button>
+          <button class="stab" onclick="setColab('Aline',this)">Aline</button>
+          <button class="stab" onclick="setColab('Lory',this)">Lory</button>
+          <button class="stab" onclick="setColab('Ludy',this)">Ludy</button>
+          <button class="stab" onclick="setColab('Wanessa',this)">Wanessa</button>
+        </div>
+      </div>
+      <div class="kgrid" id="kpi-colab"></div>
+      <div class="cd">
+        <div class="cd-t" id="colab-title">Histórico de produção — André</div>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Data</th><th>Presença</th><th>Analisados</th><th>Tratativa</th><th>Fornecedor</th><th>Req.</th><th>MDG</th><th>Val.Thiago</th><th>XGL</th><th>Rep.</th><th>Pedidos</th><th>Dev.</th><th>Total</th></tr></thead>
+            <tbody id="colab-tb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ POR LINHA ══════ -->
+    <div id="p-porlinha" class="page">
+      <div class="cd">
+        <div class="cd-t">📋 Produção por linha — acumulado do ciclo</div>
+        <div id="linhas-cards"></div>
+      </div>
+      <div class="cd">
+        <div class="cd-t">Detalhe por dia — todas as linhas</div>
+        <div class="tw">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Colaborador</th>
+                <th>Analisados</th><th>Tratativa</th><th>Fornecedor</th><th>Req.</th>
+                <th>MDG</th><th>Val.Thiago</th><th>XGL</th><th>Rep.</th><th>Pedidos</th><th>Dev.</th>
+              </tr>
+            </thead>
+            <tbody id="linha-tb"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PCP ══════ -->
+    <div id="p-pcp" class="page">
+      <div id="pcp-lock" class="cd lock-box">
+        <div style="font-size:42px;margin-bottom:12px">🔒</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--az)">Área restrita — Dados PCP</div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:1.5rem">Acesso exclusivo para o gestor</div>
+        <div style="max-width:220px;margin:0 auto;display:flex;flex-direction:column;gap:8px">
+          <input type="password" id="pcp-pwd" placeholder="Senha" onkeydown="if(event.key==='Enter')checkPwd()">
+          <button class="btn btn-p" style="justify-content:center" onclick="checkPwd()">🔓 Entrar</button>
+          <span id="pcp-err" style="font-size:11px;color:var(--vm);display:none;text-align:center">Senha incorreta</span>
+        </div>
+      </div>
+
+      <div id="pcp-data" style="display:none">
+        <div class="al al-v">✓ Acesso autorizado — Dados PCP do ciclo</div>
+        <div style="display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+          <button class="btn btn-g" onclick="exportPCP()">💾 Exportar CSV</button>
+          <button class="btn btn-r" onclick="logoutPCP()">🔒 Sair</button>
+        </div>
+        <div class="kgrid">
+          <div class="kc ok"><div class="kc-l">PATEC Finalizado / Parada</div><div class="kc-v" id="pcp-v1">—</div></div>
+          <div class="kc"><div class="kc-l">MDG + XGL</div><div class="kc-v" style="color:var(--az)" id="pcp-v2">—</div></div>
+          <div class="kc ok"><div class="kc-l">RCs para Pedidos</div><div class="kc-v" id="pcp-v3">—</div></div>
+          <div class="kc"><div class="kc-l">RCs para Devoluções</div><div class="kc-v" style="color:var(--az)" id="pcp-v4">—</div></div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Saídas diárias (PCP)</div>
+          <div class="tw">
+            <table>
+              <thead><tr><th>Data</th><th>PATEC Fin./Parada</th><th>MDG + XGL</th><th>RCs Pedidos</th><th>RCs Dev.</th><th>Total</th></tr></thead>
+              <tbody id="pcp-tb"></tbody>
+              <tfoot id="pcp-tfoot"></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">Adicionar registro PCP</div>
+          <div class="form-grid">
+            <div class="field-wrap"><span class="field-label">Data</span><input type="date" id="pcp-dt"></div>
+            <div class="field-wrap"><span class="field-label">PATEC Fin./Parada</span><input type="number" id="pcp-f1" min="0" placeholder="0"></div>
+            <div class="field-wrap"><span class="field-label">MDG + XGL</span><input type="number" id="pcp-f2" min="0" placeholder="0"></div>
+            <div class="field-wrap"><span class="field-label">RCs Pedidos</span><input type="number" id="pcp-f3" min="0" placeholder="0"></div>
+            <div class="field-wrap"><span class="field-label">RCs Devoluções</span><input type="number" id="pcp-f4" min="0" placeholder="0"></div>
+          </div>
+          <button class="btn btn-p" onclick="salvarPCP()">Salvar registro PCP</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ EXPORTAR ══════ -->
+    <div id="p-exportar" class="page">
+      <div class="al al-b">ℹ Exporte os dados de produção lançados nesta sessão. Para manter o histórico entre sessões, exporte regularmente e guarde o arquivo.</div>
+      <div class="g2">
+        <div class="cd">
+          <div class="cd-t">📥 Exportar produção</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-g" onclick="exportExcel()" style="width:100%;justify-content:center">💾 Exportar Excel (.xlsx) — todos os registros</button>
+            <button class="btn btn-s" onclick="exportCSV()" style="width:100%;justify-content:center">📄 Exportar CSV — todos os registros</button>
+            <button class="btn btn-s" onclick="exportHoje()" style="width:100%;justify-content:center">📋 Exportar Excel — apenas hoje</button>
+          </div>
+          <div class="divider"></div>
+          <div style="font-size:12px;color:var(--tx2)">
+            <strong style="color:var(--tx)">Registros salvos nesta sessão:</strong>
+            <span id="exp-count" style="font-size:16px;font-weight:700;color:var(--azm);margin-left:8px">0</span>
+          </div>
+        </div>
+        <div class="cd">
+          <div class="cd-t">🗑 Gerenciar registros</div>
+          <div style="font-size:12px;color:var(--tx2);margin-bottom:1rem">Visualize e exclua registros individualmente</div>
+          <div class="tw" style="max-height:280px">
+            <table>
+              <thead><tr><th>Data</th><th>Colaborador</th><th>Total</th><th></th></tr></thead>
+              <tbody id="exp-tb"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ct -->
+</main>
+
+<script>
+// ════════════════════════════════════════════
+// DADOS HISTÓRICOS REAIS (ciclo Maio 2026)
+// ════════════════════════════════════════════
+const HISTORICO_INICIAL = [
+  // André
+  {colab:'André',data:'2026-05-12',pres:'Presencial',f:[26,0,19,1,0,0,0,10,2,5]},
+  // Lory
+  {colab:'Lory',data:'2026-05-01',pres:'Presencial',f:[21,1,1,0,0,0,0,0,21,0]},
+  {colab:'Lory',data:'2026-05-02',pres:'Presencial',f:[35,3,0,0,0,0,0,6,1,0]},
+  {colab:'Lory',data:'2026-05-05',pres:'Presencial',f:[35,0,0,0,0,0,0,0,35,0]},
+  {colab:'Lory',data:'2026-05-06',pres:'Presencial',f:[8,17,15,0,0,0,0,8,1,1]},
+  {colab:'Lory',data:'2026-05-07',pres:'Home Office',f:[19,11,7,1,0,1,1,9,9,2]},
+  {colab:'Lory',data:'2026-05-08',pres:'Presencial',f:[29,5,16,0,1,0,0,0,0,2]},
+  {colab:'Lory',data:'2026-05-09',pres:'Presencial',f:[46,0,46,0,0,0,0,15,0,0]},
+  {colab:'Lory',data:'2026-05-12',pres:'Presencial',f:[40,3,12,0,0,0,0,0,12,0]},
+  {colab:'Lory',data:'2026-05-13',pres:'Home Office',f:[20,6,18,3,2,1,0,16,12,2]},
+  // Ludy
+  {colab:'Ludy',data:'2026-05-01',pres:'Home Office',f:[17,16,15,0,0,1,1,7,5,4]},
+  {colab:'Ludy',data:'2026-05-02',pres:'Home Office',f:[8,24,7,4,0,2,0,8,1,10]},
+  {colab:'Ludy',data:'2026-05-05',pres:'Home Office',f:[3,33,12,4,0,2,1,3,3,11]},
+  {colab:'Ludy',data:'2026-05-07',pres:'Home Office',f:[8,32,19,4,0,2,2,6,2,5]},
+  {colab:'Ludy',data:'2026-05-08',pres:'Home Office',f:[16,14,9,7,0,2,1,0,6,5]},
+  {colab:'Ludy',data:'2026-05-09',pres:'Home Office',f:[52,7,33,2,0,3,0,3,17,1]},
+  {colab:'Ludy',data:'2026-05-12',pres:'Home Office',f:[6,39,16,4,0,0,0,8,11,1]},
+  {colab:'Ludy',data:'2026-05-13',pres:'Home Office',f:[10,16,8,0,1,0,0,8,2,10]},
+  // Wanessa
+  {colab:'Wanessa',data:'2026-05-06',pres:'Presencial',f:[0,24,11,0,0,3,1,5,3,1]},
+  {colab:'Wanessa',data:'2026-05-07',pres:'Presencial',f:[0,20,0,0,0,2,1,8,2,7]},
+  {colab:'Wanessa',data:'2026-05-08',pres:'Presencial',f:[0,22,3,3,1,1,3,5,3,3]},
+  {colab:'Wanessa',data:'2026-05-09',pres:'Presencial',f:[0,21,5,4,1,1,1,7,3,3]},
+];
+const PCP_INICIAL = [
+  {data:'2026-05-01',f1:79,f2:2,f3:29,f4:7},
+  {data:'2026-05-02',f1:90,f2:1,f3:4,f4:17},
+  {data:'2026-05-05',f1:93,f2:5,f3:41,f4:27},
+  {data:'2026-05-06',f1:46,f2:1,f3:1,f4:10},
+  {data:'2026-05-07',f1:70,f2:3,f3:11,f4:22},
+  {data:'2026-05-08',f1:64,f2:2,f3:6,f4:11},
+  {data:'2026-05-09',f1:131,f2:0,f3:19,f4:7},
+  {data:'2026-05-12',f1:88,f2:0,f3:23,f4:5},
+  {data:'2026-05-13',f1:56,f2:3,f3:0,f4:8},
+];
+
+const LINHAS = ['Analisados','Tratativa','Fornecedor','Requisitante','MDG','Val.Thiago','XGL','Republicação','Pedidos','Devoluções'];
+const COLABS = ['André','Aline','Lory','Ludy','Wanessa'];
+const SENHA_PCP = 'patec2026';
+const HOJE = new Date();
+
+// Estado
+let registros = [...HISTORICO_INICIAL];
+let pcpData   = [...PCP_INICIAL];
+let presAtual = 'Presencial';
+let colabAtual = 'André';
+
+// ── INIT ──
+document.getElementById('tdt').textContent = HOJE.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+document.getElementById('sel-data').value  = HOJE.toISOString().split('T')[0];
+document.getElementById('pcp-dt').value    = HOJE.toISOString().split('T')[0];
+document.getElementById('eq-data-label').textContent = HOJE.toLocaleDateString('pt-BR');
+
+// ── SIDEBAR ──
+function toggleSb(){document.getElementById('sb').classList.toggle('mob-open');}
+function goPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-it').forEach(i=>i.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  const titles={lancar:'Lançar Produção',equipe:'Visão da Equipe',porcolab:'Por Colaborador',porlinha:'Por Linha',pcp:'Dados PCP',exportar:'Exportar'};
+  document.getElementById('ttl').textContent = titles[id]||id;
+  if(id==='equipe'){renderEquipe();renderEquipeAcum();}
+  if(id==='porcolab'){renderColab('André');}
+  if(id==='porlinha')renderLinhas();
+  if(id==='exportar')renderExport();
+  if(id==='pcp')renderPCP();
+  document.getElementById('sb').classList.remove('mob-open');
+}
+
+// ── PRESENÇA ──
+function selPres(v,el){
+  presAtual=v;
+  document.querySelectorAll('.pres-opt').forEach(o=>{o.className='pres-opt';});
+  el.classList.add(v==='Presencial'?'sel-P':v==='Home Office'?'sel-H':'sel-F');
+}
+
+// ── TOTAL DINÂMICO ──
+function updateTotal(){
+  let t=0;
+  for(let i=0;i<10;i++){const v=parseInt(document.getElementById('f'+i).value)||0;t+=v;}
+  document.getElementById('total-badge').textContent=t.toLocaleString('pt-BR');
+  document.getElementById('total-badge').style.color=t>=90?'var(--vd)':t>=72?'var(--am)':'var(--az)';
+}
+function updateHeader(){
+  colabAtual=document.getElementById('sel-colab').value;
+  document.getElementById('colab-display').textContent=colabAtual;
+}
+
+// ── SALVAR ──
+function salvar(){
+  const colab=document.getElementById('sel-colab').value;
+  const data =document.getElementById('sel-data').value;
+  if(!data){alert('Informe a data.');return;}
+  const f=[];for(let i=0;i<10;i++)f.push(parseInt(document.getElementById('f'+i).value)||0);
+  registros.push({colab,data,pres:presAtual,f});
+  const msg=document.getElementById('msg-salvo');
+  msg.style.display='inline';setTimeout(()=>msg.style.display='none',3000);
+  // não limpa — usuário pode querer ajustar e salvar de novo
+}
+function limpar(){
+  for(let i=0;i<10;i++)document.getElementById('f'+i).value='';
+  updateTotal();
+}
+
+// ── UTIL ──
+function fmtData(d){
+  if(!d)return'—';
+  const p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];
+}
+function pill(txt,cls){return`<span class="pl ${cls}">${txt}</span>`;}
+function presPill(p){
+  if(p==='Presencial')return pill('🏢 Presencial','pl-az');
+  if(p==='Home Office')return pill('🏠 Home Office','pl-ok');
+  if(p==='Folga')return pill('🌴 Folga','pl-f');
+  return pill(p,'pl-g');
+}
+function metaPill(t){
+  const pct=Math.round(t/90*100);
+  if(pct>=100)return`<span style="color:var(--vd);font-weight:700">${pct}%</span>`;
+  if(pct>=80)return`<span style="color:var(--am);font-weight:700">${pct}%</span>`;
+  return`<span style="color:var(--vm);font-weight:700">${pct}%</span>`;
+}
+
+// ── SUBTAB EQUIPE ──
+function setEquipeTab(id,btn){
+  document.querySelectorAll('#p-equipe .stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('eq-hoje').style.display=id==='hoje'?'block':'none';
+  document.getElementById('eq-acum').style.display=id==='acum'?'block':'none';
+}
+
+// ── RENDER EQUIPE (hoje) ──
+function renderEquipe(){
+  const dataHoje=document.getElementById('sel-data').value||HOJE.toISOString().split('T')[0];
+  const regs=registros.filter(r=>r.data===dataHoje);
+  // KPIs
+  const totAnalisados=regs.reduce((a,r)=>a+r.f[0],0);
+  const totGeral=regs.reduce((a,r)=>a+r.f.reduce((s,v)=>s+v,0),0);
+  const presentes=regs.filter(r=>r.pres!=='Folga').length;
+  document.getElementById('kpi-equipe').innerHTML=`
+    <div class="kc ok"><div class="kc-l">Itens analisados (novos)</div><div class="kc-v">${totAnalisados}</div><div class="kc-s">equipe hoje</div></div>
+    <div class="kc"><div class="kc-l">Total de ações</div><div class="kc-v" style="color:var(--az)">${totGeral}</div><div class="kc-s">todas as linhas</div></div>
+    <div class="kc"><div class="kc-l">Colaboradores ativos</div><div class="kc-v" style="color:var(--az)">${presentes}</div><div class="kc-s">de ${COLABS.length}</div></div>
+    <div class="kc ${totAnalisados>=90?'ok':totAnalisados>=72?'warn':'bad'}"><div class="kc-l">% da meta (analisados)</div><div class="kc-v">${Math.round(totAnalisados/90*100)}%</div><div class="kc-s">meta: 90/dia</div></div>
+  `;
+  if(regs.length===0){
+    document.getElementById('eq-tb-hoje').innerHTML='<tr><td colspan="14" style="text-align:center;color:var(--tx2);padding:1.5rem">Nenhum registro para hoje. Lance a produção na aba anterior.</td></tr>';
+    document.getElementById('eq-tfoot-hoje').innerHTML='';return;
+  }
+  // Totais por coluna para tfoot
+  const sums=Array(10).fill(0);
+  let totT=0;
+  document.getElementById('eq-tb-hoje').innerHTML=regs.map(r=>{
+    const t=r.f.reduce((a,b)=>a+b,0);totT+=t;
+    r.f.forEach((v,i)=>sums[i]+=v);
+    return`<tr>
+      <td><strong>${r.colab}</strong></td>
+      <td>${presPill(r.pres)}</td>
+      ${r.f.map(v=>`<td>${v||'—'}</td>`).join('')}
+      <td style="font-weight:700">${t}</td>
+      <td>${metaPill(r.f[0])}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('eq-tfoot-hoje').innerHTML=`<tr><td><strong>TOTAL</strong></td><td>—</td>${sums.map(v=>`<td style="font-weight:700">${v||'—'}</td>`).join('')}<td style="font-weight:700">${totT}</td><td>${metaPill(sums[0])}</td></tr>`;
+}
+
+// ── RENDER EQUIPE ACUMULADO ──
+function renderEquipeAcum(){
+  const acum={};
+  COLABS.forEach(c=>{acum[c]={dias:0,f:Array(10).fill(0)};});
+  registros.forEach(r=>{
+    if(!acum[r.colab])acum[r.colab]={dias:0,f:Array(10).fill(0)};
+    acum[r.colab].dias++;
+    r.f.forEach((v,i)=>acum[r.colab].f[i]+=v);
+  });
+  document.getElementById('eq-tb-acum').innerHTML=Object.entries(acum).map(([c,d])=>{
+    const t=d.f.reduce((a,b)=>a+b,0);
+    const med=d.dias>0?Math.round(d.f[0]/d.dias):0;
+    return`<tr><td><strong>${c}</strong></td><td>${d.dias}</td>${d.f.map(v=>`<td>${v||'—'}</td>`).join('')}<td style="font-weight:700">${t}</td><td style="font-weight:700;color:${med>=90?'var(--vd)':med>=72?'var(--am)':'var(--vm)'}">${med}/dia</td></tr>`;
+  }).join('');
+}
+
+// ── RENDER POR COLABORADOR ──
+function setColab(c,btn){
+  document.querySelectorAll('#colab-tabs .stab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderColab(c);
+}
+function renderColab(c){
+  document.getElementById('colab-title').textContent='Histórico de produção — '+c;
+  const regs=registros.filter(r=>r.colab===c).sort((a,b)=>a.data.localeCompare(b.data));
+  const totF=Array(10).fill(0);
+  let totT=0;
+  const rows=regs.map(r=>{
+    const t=r.f.reduce((a,b)=>a+b,0);totT+=t;
+    r.f.forEach((v,i)=>totF[i]+=v);
+    return`<tr><td>${fmtData(r.data)}</td><td>${presPill(r.pres)}</td>${r.f.map(v=>`<td>${v||'—'}</td>`).join('')}<td style="font-weight:700">${t}</td></tr>`;
+  }).join('');
+  const dias=regs.length;
+  const med=dias>0?Math.round(regs.reduce((a,r)=>a+r.f[0],0)/dias):0;
+  document.getElementById('kpi-colab').innerHTML=`
+    <div class="kc"><div class="kc-l">Dias registrados</div><div class="kc-v" style="color:var(--az)">${dias}</div></div>
+    <div class="kc ok"><div class="kc-l">Total analisados</div><div class="kc-v">${totF[0]}</div></div>
+    <div class="kc ${med>=90?'ok':med>=72?'warn':'bad'}"><div class="kc-l">Média diária</div><div class="kc-v">${med}</div><div class="kc-s">meta: 90/dia</div></div>
+    <div class="kc"><div class="kc-l">Total ações</div><div class="kc-v" style="color:var(--az)">${totT}</div></div>
+  `;
+  document.getElementById('colab-tb').innerHTML=rows||'<tr><td colspan="13" style="text-align:center;color:var(--tx2);padding:1.5rem">Sem registros para '+c+'</td></tr>';
+}
+
+// ── RENDER POR LINHA ──
+function renderLinhas(){
+  const sums=Array(10).fill(0);
+  registros.forEach(r=>r.f.forEach((v,i)=>sums[i]+=v));
+  const total=sums.reduce((a,b)=>a+b,0);
+  document.getElementById('linhas-cards').innerHTML=LINHAS.map((l,i)=>{
+    const pct=total>0?Math.round(sums[i]/total*100):0;
+    return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
+      <span style="width:120px;font-size:12px;font-weight:600">${l}</span>
+      <div class="prog-bar" style="flex:1"><div class="prog-fill" style="width:${pct}%;background:${i===0?'var(--vd)':i<4?'var(--azm)':i<7?'var(--am)':'var(--tx2)'}"></div></div>
+      <span style="font-size:13px;font-weight:700;width:50px;text-align:right;color:var(--az)">${sums[i]}</span>
+      <span style="font-size:10px;color:var(--tx2);width:35px">${pct}%</span>
+    </div>`;
+  }).join('');
+  document.getElementById('linha-tb').innerHTML=registros.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`<tr><td>${fmtData(r.data)}</td><td><strong>${r.colab}</strong></td>${r.f.map(v=>`<td>${v||'—'}</td>`).join('')}</tr>`).join('');
+}
+
+// ── PCP ──
+function checkPwd(){
+  if(document.getElementById('pcp-pwd').value===SENHA_PCP){
+    document.getElementById('pcp-lock').style.display='none';
+    document.getElementById('pcp-data').style.display='block';
+    renderPCP();
+  }else{
+    const err=document.getElementById('pcp-err');err.style.display='block';
+    setTimeout(()=>err.style.display='none',2500);
+  }
+}
+function logoutPCP(){
+  document.getElementById('pcp-lock').style.display='block';
+  document.getElementById('pcp-data').style.display='none';
+  document.getElementById('pcp-pwd').value='';
+}
+function renderPCP(){
+  if(document.getElementById('pcp-data').style.display==='none')return;
+  const tot={f1:0,f2:0,f3:0,f4:0};
+  pcpData.forEach(r=>{tot.f1+=r.f1;tot.f2+=r.f2;tot.f3+=r.f3;tot.f4+=r.f4;});
+  document.getElementById('pcp-v1').textContent=tot.f1.toLocaleString('pt-BR');
+  document.getElementById('pcp-v2').textContent=tot.f2.toLocaleString('pt-BR');
+  document.getElementById('pcp-v3').textContent=tot.f3.toLocaleString('pt-BR');
+  document.getElementById('pcp-v4').textContent=tot.f4.toLocaleString('pt-BR');
+  const sorted=pcpData.slice().sort((a,b)=>a.data.localeCompare(b.data));
+  document.getElementById('pcp-tb').innerHTML=sorted.map(r=>{
+    const t=r.f1+r.f2+r.f3+r.f4;
+    return`<tr><td>${fmtData(r.data)}</td><td>${r.f1}</td><td>${r.f2}</td><td>${r.f3}</td><td>${r.f4}</td><td style="font-weight:700">${t}</td></tr>`;
+  }).join('');
+  const gt=tot.f1+tot.f2+tot.f3+tot.f4;
+  document.getElementById('pcp-tfoot').innerHTML=`<tr><td><strong>TOTAL</strong></td><td>${tot.f1}</td><td>${tot.f2}</td><td>${tot.f3}</td><td>${tot.f4}</td><td style="font-weight:700">${gt}</td></tr>`;
+}
+function salvarPCP(){
+  const d=document.getElementById('pcp-dt').value;
+  if(!d){alert('Informe a data.');return;}
+  pcpData.push({data:d,f1:parseInt(document.getElementById('pcp-f1').value)||0,f2:parseInt(document.getElementById('pcp-f2').value)||0,f3:parseInt(document.getElementById('pcp-f3').value)||0,f4:parseInt(document.getElementById('pcp-f4').value)||0});
+  ['pcp-f1','pcp-f2','pcp-f3','pcp-f4'].forEach(id=>document.getElementById(id).value='');
+  renderPCP();
+}
+function exportPCP(){
+  const hd='Data,PATEC Fin./Parada,MDG+XGL,RCs Pedidos,RCs Devoluções,Total\n';
+  const rows=pcpData.map(r=>`${fmtData(r.data)},${r.f1},${r.f2},${r.f3},${r.f4},${r.f1+r.f2+r.f3+r.f4}`).join('\n');
+  dlFile('PCP_PATEC.csv','text/csv','\uFEFF'+hd+rows);
+}
+
+// ── EXPORTAR ──
+function renderExport(){
+  document.getElementById('exp-count').textContent=registros.length;
+  document.getElementById('exp-tb').innerHTML=registros.slice().sort((a,b)=>b.data.localeCompare(a.data)).map((r,i)=>`<tr><td>${fmtData(r.data)}</td><td>${r.colab}</td><td>${r.f.reduce((a,b)=>a+b,0)}</td><td><button class="btn btn-r" style="padding:3px 8px;font-size:10px" onclick="delReg(${registros.indexOf(r)})">✕</button></td></tr>`).join('');
+}
+function delReg(i){if(confirm('Excluir registro?')){registros.splice(i,1);renderExport();}}
+function buildData(regs){
+  return[
+    ['Colaborador','Data','Presença',...LINHAS,'Total Geral'],
+    ...regs.map(r=>[r.colab,fmtData(r.data),r.pres,...r.f,r.f.reduce((a,b)=>a+b,0)])
+  ];
+}
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(buildData(registros.slice().sort((a,b)=>a.data.localeCompare(b.data))));
+  ws['!cols']=[{wch:10},{wch:11},{wch:12},...LINHAS.map(()=>({wch:10})),{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'Produção');
+  // Aba por colaborador
+  COLABS.forEach(c=>{
+    const regs=registros.filter(r=>r.colab===c);
+    if(regs.length){
+      const ws2=XLSX.utils.aoa_to_sheet(buildData(regs.sort((a,b)=>a.data.localeCompare(b.data))));
+      XLSX.utils.book_append_sheet(wb,ws2,c.substring(0,20));
+    }
+  });
+  XLSX.writeFile(wb,`Producao_PATEC_${HOJE.toLocaleDateString('pt-BR').replace(/\//g,'-')}.xlsx`);
+}
+function exportCSV(){
+  const hd='Colaborador,Data,Presença,'+LINHAS.join(',')+',Total\n';
+  const rows=registros.map(r=>`${r.colab},${fmtData(r.data)},${r.pres},${r.f.join(',')},${r.f.reduce((a,b)=>a+b,0)}`).join('\n');
+  dlFile('Producao_PATEC.csv','text/csv','\uFEFF'+hd+rows);
+}
+function exportHoje(){
+  const d=HOJE.toISOString().split('T')[0];
+  const regs=registros.filter(r=>r.data===d);
+  if(!regs.length){alert('Nenhum registro para hoje.');return;}
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(buildData(regs));
+  XLSX.utils.book_append_sheet(wb,ws,'Hoje');
+  XLSX.writeFile(wb,`Producao_PATEC_Hoje.xlsx`);
+}
+function dlFile(name,type,content){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;a.click();
+}
+
+// ── INIT renders ──
+renderEquipe();
+renderEquipeAcum();
+</script>
+</body>
+</html>
+HTMLEOF
